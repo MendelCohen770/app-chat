@@ -1,0 +1,24 @@
+# Ignore build output directories
+/build/
+/dist/
+
+# Ignore node_modules directory
+/node_modules/
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+request.http
+package-lock.json
+.env

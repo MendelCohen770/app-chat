@@ -2,14 +2,16 @@ import express, { Application, Request, Response } from 'express';
 import DBconnect from './DBconnect/DBconnect'
 import dotenv from 'dotenv';
 import path from 'path';
+import userRoute from './routes/user.route'
 
-const port = process.env.PORT || 3001;
 const app = express();
 dotenv.config();
+const port = process.env.PORT || 3001;
 
 DBconnect();
 
-
+app.use(express.json());
+app.use('/user', userRoute)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 

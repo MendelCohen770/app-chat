@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import { genericResponse } from '../utils/helper';
 
 
-const createUser = async (req : Request, res : Response) => {
+const singUp = async (req : Request, res : Response) => {
     const {username, email, password, phone} = req.body;
 
     if(!username || !email || !password || !phone){
@@ -115,4 +115,26 @@ const searchUser = async (req : Request, res : Response) => {
     }
 }
 
-export {createUser, updateUser, searchUser}
+const deleteUser = async (req : Request, res : Response) => {
+    const {_id} = req.body;
+    if(!_id){
+        const response = genericResponse(false, 'Please provide a user ID', null, 'User ID field is missing', null);
+        res.status(400).json(response);
+        return;
+    }
+    try{
+        const user = await User.findByIdAndDelete(_id);
+        if(!user){
+            const response = genericResponse(false, 'User not found', null, null, null);
+            res.status(404).json(response);
+            return;
+        }
+        const response = genericResponse(true, 'User deleted', null, null, user);
+        res.status(200).json(response);
+
+    }catch(err){
+        const response = genericResponse(false, 'Error deleting', null, err instanceof Error? err.message : 'Unknown error', null);
+        res.status(500).json(response);
+    }
+}
+export {singUp, updateUser, searchUser, deleteUser}

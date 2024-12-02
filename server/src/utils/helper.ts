@@ -1,4 +1,6 @@
 import { ServerResponse } from "./types";
+import jwt from 'jsonwebtoken'
+import {IUser} from '../models/user.schema'
 
 export const genericResponse = <T>(
     isSuccessful: boolean = false,
@@ -15,3 +17,8 @@ export const genericResponse = <T>(
         data,
     };
 };
+
+export const createToken = (user : IUser) => {
+    const token = jwt.sign({id: user.id, role: user.role}, process.env.JWT_SECRET as string, {expiresIn: '1d'});
+    return token;
+}

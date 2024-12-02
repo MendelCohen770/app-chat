@@ -1,7 +1,7 @@
 import User from '../models/user.schema'
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { genericResponse } from '../utils/helper';
+import { genericResponse, createToken } from '../utils/helper';
 
 
 const singUp = async (req : Request, res : Response) => {
@@ -158,7 +158,13 @@ const login = async (req : Request, res : Response) => {
             res.status(401).json(response);
             return;
         };
-
+        const token = createToken(user);
+        res.cookie('token',token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'none',
+            maxAge: 60 * 60 * 3000,
+        });
         user.password = '*****';
         const response = genericResponse(true, 'Logged in successfully', null, null, user);
         res.status(200).json(response);
@@ -205,4 +211,39 @@ const deleteSelfAccount = async (req : Request, res : Response) => {
     }
 
 }
-export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount};
+
+const changePassword = async (req : Request, res : Response) => {
+    const {password, newPassword} = req.body;
+     const userId = req.user?._id;
+    if(!password || !newPassword){
+        const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
+        res.status(400).json(response);
+        return;
+    };
+    try{
+        const user = await User.findById(userId);
+        if(!user){
+            const response = genericResponse(false, 'User not found', null, null, null);
+            res.status(404).json(response);
+            return;
+        };
+        const isMatch = await bcrypt.compare(password, user.password);
+        if(!isMatch){
+            const response = genericResponse(false, 'Invalid credentials', null, null, null);
+            res.status(401).json(response);
+            return;
+        };
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        await user.save();
+
+        user.password = '*****';
+        const response = genericResponse(true, 'Password changed successfully', null, null, user);
+        res.status(200).json(response); 
+
+    }catch(err){
+        const response = genericResponse(false, 'Error changing password', null, err instanceof Error? err.message : 'Unknown error', null);
+        res.status(500).json(response);
+    }
+}
+export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword};

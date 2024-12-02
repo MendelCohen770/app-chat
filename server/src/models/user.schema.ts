@@ -9,6 +9,7 @@ export interface IUser extends Document {
     phone: string,
     createdAt: Date;
     profileIcon?: string; // שדה אופציונלי לאייקון המשתמש
+    role: 'user' | 'admin';
 }
 const UserSchema: Schema = new Schema({
     username: {type: String, required: true, unique: true, minlength: 2},
@@ -17,6 +18,7 @@ const UserSchema: Schema = new Schema({
     phone: {type: String, required: true, unique: true, match: /^[0-9+\-]{9,14}$/},
     createdAt: { type: Date, default: Date.now },
     profileIcon: { type: String, default: '' },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
 });
 
 const User = mongoose.model<IUser>('User', UserSchema);

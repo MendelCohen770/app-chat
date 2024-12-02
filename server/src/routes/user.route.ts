@@ -1,13 +1,25 @@
 import express from 'express';
-import { singUp, updateUser, searchUser, deleteUser} from '../controllers/user.controllers'
+import { authMiddleware } from '../middlewares/middel'
+import {
+    singUp,
+    updateUser,
+    searchUser,
+    deleteUser,
+    login,
+    deleteSelfAccount
+} from '../controllers/user.controllers'
+
 
 
 const userRoute = express.Router();
 
 userRoute.post('/singUp', singUp);
-userRoute.post('/updateUser', updateUser);
+userRoute.post('/login', login);
+userRoute.post('/updateUser', authMiddleware, updateUser);
 
-userRoute.get('/searchUser', searchUser);
 
-userRoute.delete('/deleteUser', deleteUser);
+userRoute.get('/searchUser', authMiddleware, searchUser);
+
+userRoute.delete('/deleteUser', authMiddleware, deleteUser);
+userRoute.delete('/deleteSelfAccount', authMiddleware, deleteSelfAccount)
 export default userRoute;

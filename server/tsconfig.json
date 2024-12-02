@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "typeRoots": ["./node_modules/@types", "./utils"],
     "target": "ES2020",
     "module": "commonjs",
     "outDir": "./dist",
@@ -7,6 +8,8 @@
     "strict": true,
     "esModuleInterop": true
   },
-  "include": ["./src/**.ts", "src/index.ts"],
+  "include": ["./src/**/*.ts"],
   "exclude": ["node_modules"]
 }
+
+//"include": ["src/**/*", "types/**/*"],

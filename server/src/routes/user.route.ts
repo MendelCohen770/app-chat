@@ -23,5 +23,6 @@ userRoute.post('/updateUser', authMiddleware, updateUser);
 userRoute.get('/searchUser', authMiddleware, searchUser);
 
 userRoute.delete('/deleteUser', authMiddleware, checkRole(['admin']), deleteUser);
-userRoute.delete('/deleteSelfAccount', authMiddleware, deleteSelfAccount)
+userRoute.delete('/deleteSelfAccount', authMiddleware, deleteSelfAccount);
+
 export default userRoute;

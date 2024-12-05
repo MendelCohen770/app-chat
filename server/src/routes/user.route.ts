@@ -11,16 +11,13 @@ import {
     logout
 } from '../controllers/user.controllers'
 
-
-
 const userRoute = express.Router();
 
 userRoute.post('/singUp', singUp);
 userRoute.post('/login', login);
 userRoute.put('/changePassword', changePassword);
 userRoute.post('/updateUser', authMiddleware, updateUser);
-userRoute.get('/logout', authMiddleware, logout);
-
+userRoute.post('/logout', authMiddleware, logout);
 
 userRoute.get('/searchUser', authMiddleware, searchUser);
 

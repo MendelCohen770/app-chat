@@ -7,7 +7,8 @@ import {
     deleteUser,
     login,
     deleteSelfAccount,
-    changePassword
+    changePassword,
+    logout
 } from '../controllers/user.controllers'
 
 
@@ -18,6 +19,7 @@ userRoute.post('/singUp', singUp);
 userRoute.post('/login', login);
 userRoute.put('/changePassword', changePassword);
 userRoute.post('/updateUser', authMiddleware, updateUser);
+userRoute.get('/logout', authMiddleware, logout);
 
 
 userRoute.get('/searchUser', authMiddleware, searchUser);

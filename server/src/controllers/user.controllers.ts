@@ -138,42 +138,6 @@ const deleteUser = async (req : Request, res : Response) => {
     }
 }
 
-const login = async (req : Request, res : Response) => {
-    const { username, password } = req.body;
-    if(!username || !password){
-        const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
-        res.status(400).json(response);
-        return;
-    };
-    try{
-        const user = await User.findOne({username});
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        };
-        const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMatch){
-            const response = genericResponse(false, 'Invalid credentials', null, null, null);
-            res.status(401).json(response);
-            return;
-        };
-        const token = createToken(user);
-        res.cookie('token',token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none',
-            maxAge: 60 * 60 * 3000,
-        });
-        user.password = '*****';
-        const response = genericResponse(true, 'Logged in successfully', null, null, user);
-        res.status(200).json(response);
-
-    }catch(err){
-        const response = genericResponse(false, 'Error logging in', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
-    }
-}
 
 const deleteSelfAccount = async (req : Request, res : Response) => {
     const {password} = req.body;
@@ -246,4 +210,59 @@ const changePassword = async (req : Request, res : Response) => {
         res.status(500).json(response);
     }
 }
-export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword};
+
+const login = async (req : Request, res : Response) => {
+    const { username, password } = req.body;
+    if(!username || !password){
+        const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
+        res.status(400).json(response);
+        return;
+    };
+    try{
+        const user = await User.findOne({username});
+        if(!user){
+            const response = genericResponse(false, 'User not found', null, null, null);
+            res.status(404).json(response);
+            return;
+        };
+        const isMatch = await bcrypt.compare(password, user.password);
+        if(!isMatch){
+            const response = genericResponse(false, 'Invalid credentials', null, null, null);
+            res.status(401).json(response);
+            return;
+        };
+        const token = createToken(user);
+        res.cookie('token',token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'none',
+            maxAge: 60 * 60 * 3000,
+        });
+        user.password = '*****';
+        const response = genericResponse(true, 'Logged in successfully', null, null, user);
+        res.status(200).json(response);
+
+    }catch(err){
+        const response = genericResponse(false, 'Error logging in', null, err instanceof Error? err.message : 'Unknown error', null);
+        res.status(500).json(response);
+    }
+}
+
+const logout = async (req : Request, res : Response) => {
+    try{
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'none',
+        })
+        
+        const response = genericResponse(true, 'Logged out successfully', null, null, null);
+        res.status(200).json(response);
+
+    }catch(err){
+        const response = genericResponse(false, 'Error to logout', null, err instanceof Error? err.message : 'Unknown error', null);
+        res.status(500).json(response);
+    }
+}
+
+export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout};

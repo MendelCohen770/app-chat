@@ -11,7 +11,7 @@ export interface IUser extends Document {
     profileIcon?: string; // שדה אופציונלי לאייקון המשתמש
     role: 'user' | 'admin';
 }
-const UserSchema: Schema = new Schema({
+const UserSchema: Schema = new Schema<IUser>({
     username: {type: String, required: true, unique: true, minlength: 2},
     email: {type: String, required: true, unique: true},
     password: {type: String, required: true, minlength: 8, match: /^\$2b\$10\$.+/},
@@ -19,7 +19,7 @@ const UserSchema: Schema = new Schema({
     createdAt: { type: Date, default: Date.now },
     profileIcon: { type: String, default: '' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
-});
+}, { timestamps: true});
 
 const User = mongoose.model<IUser>('User', UserSchema);
 export default User;

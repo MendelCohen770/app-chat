@@ -8,7 +8,8 @@ import {
     login,
     deleteSelfAccount,
     changePassword,
-    logout
+    logout,
+    getUserDetails
 } from '../controllers/user.controllers'
 
 const userRoute = express.Router();
@@ -20,6 +21,7 @@ userRoute.post('/updateUser', authMiddleware, updateUser);
 userRoute.post('/logout', authMiddleware, logout);
 
 userRoute.get('/searchUser', authMiddleware, searchUser);
+userRoute.get('/getUserDetails', authMiddleware, getUserDetails);
 
 userRoute.delete('/deleteUser', authMiddleware, checkRole(['admin']), deleteUser);
 userRoute.delete('/deleteSelfAccount', authMiddleware, deleteSelfAccount);

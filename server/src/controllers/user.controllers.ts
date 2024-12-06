@@ -136,7 +136,7 @@ const deleteUser = async (req : Request, res : Response) => {
         const response = genericResponse(false, 'Error deleting', null, err instanceof Error? err.message : 'Unknown error', null);
         res.status(500).json(response);
     }
-}
+};
 
 
 const deleteSelfAccount = async (req : Request, res : Response) => {
@@ -174,7 +174,7 @@ const deleteSelfAccount = async (req : Request, res : Response) => {
         res.status(500).json(response);
     }
 
-}
+};
 
 const changePassword = async (req : Request, res : Response) => {
     const {password, newPassword} = req.body;
@@ -209,7 +209,7 @@ const changePassword = async (req : Request, res : Response) => {
         const response = genericResponse(false, 'Error changing password', null, err instanceof Error? err.message : 'Unknown error', null);
         res.status(500).json(response);
     }
-}
+};
 
 const login = async (req : Request, res : Response) => {
     const { username, password } = req.body;
@@ -246,7 +246,7 @@ const login = async (req : Request, res : Response) => {
         const response = genericResponse(false, 'Error logging in', null, err instanceof Error? err.message : 'Unknown error', null);
         res.status(500).json(response);
     }
-}
+};
 
 const logout = async (req : Request, res : Response) => {
     try{
@@ -263,6 +263,29 @@ const logout = async (req : Request, res : Response) => {
         const response = genericResponse(false, 'Error to logout', null, err instanceof Error? err.message : 'Unknown error', null);
         res.status(500).json(response);
     }
-}
+};
 
-export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout};
+const getUserDetails  = async (req : Request, res : Response) => {
+    const userId = req.user?._id;
+    if(!userId){
+        const response = genericResponse(false, 'User not found', null, null, null);
+        res.status(404).json(response);
+        return;
+    };
+
+    try{
+        const user = await User.findById(userId).select('-password');
+        if(!user){
+            const response = genericResponse(false, 'User not found', null, null, null);
+            res.status(404).json(response);
+            return;
+        }
+        const response = genericResponse(true, 'User details retrieved successfully', null, null, user);
+        res.status(200).json(response); 
+    }catch(err){
+        const response = genericResponse(false, 'Error to getUserDetails', null, err instanceof Error? err.message : 'Unknown error', null);
+        res.status(500).json(response);
+    };
+};
+
+export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails};

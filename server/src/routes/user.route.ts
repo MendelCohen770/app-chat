@@ -9,13 +9,17 @@ import {
     deleteSelfAccount,
     changePassword,
     logout,
-    getUserDetails
+    getUserDetails,
+    otpService,
+    verifyOTP
 } from '../controllers/user.controllers'
 
 const userRoute = express.Router();
 
 userRoute.post('/singUp', singUp);
 userRoute.post('/login', login);
+userRoute.post('/otpService', otpService);
+userRoute.post('/verifyOTP', verifyOTP);
 userRoute.put('/changePassword', changePassword);
 userRoute.post('/updateUser', authMiddleware, updateUser);
 userRoute.post('/logout', authMiddleware, logout);

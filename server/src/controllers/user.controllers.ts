@@ -1,7 +1,9 @@
 import User from '../models/user.schema'
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { genericResponse, createToken } from '../utils/helper';
+import { genericResponse, createToken, generateOTP, sendEmail, saveOTPToDB } from '../utils/helper';
+import { error, log } from 'console';
+import OTPModel from '../models/otp.schema';
 
 
 const singUp = async (req : Request, res : Response) => {
@@ -288,4 +290,75 @@ const getUserDetails  = async (req : Request, res : Response) => {
     };
 };
 
-export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails};
+const otpService = async (req : Request, res : Response) => {
+    const {email} = req.body;
+    if(!email){
+        const response = genericResponse(false, 'Please provide your email', null, 'Email field is missing', null);
+        res.status(400).json(response);
+        return;
+    };
+    try{
+        const user = await User.findOne({email});
+        if(!user){
+            const response = genericResponse(false, 'User not found', null, null, null);
+            res.status(404).json(response);
+            return;
+        };
+        const otp = generateOTP();
+
+       await sendEmail(email, otp);
+       await saveOTPToDB(email, otp);
+
+       const response = genericResponse(true, 'OTP send to email', null, null, otp);
+       res.status(200).json(response);
+    }catch(err){
+        const response = genericResponse(false, 'Failed to send OTP', null, error instanceof Error ? error.message : 'Unknown error', null);
+        res.status(500).json(response);
+    };
+};
+
+const verifyOTP = async (req : Request, res : Response) => {
+    const {email, otp} = req.body;
+    if(!email || !otp){
+        const response = genericResponse(false, 'Please provide your email and OTP', null, 'Email or OTP field is missing', null);
+        res.status(400).json(response);
+        return;
+    };
+    try{
+        const otpRecord = await OTPModel.findOne({email, otp});
+        if(!otpRecord){
+            const response = genericResponse(false, 'Invalid OTP', null, null, null);
+            res.status(401).json(response);
+            return;
+        };
+        if(Date.now() > otpRecord.expirationDate.getTime()){
+            await OTPModel.deleteOne({email, otp});
+            const response = genericResponse(false, 'OTP expired', null, null, null);
+            res.status(401).json(response);
+            return;
+        };
+        const user = await User.findOne({email});
+        if(!user){
+            const response = genericResponse(false, 'User not found', null, null, null);
+            res.status(404).json(response);
+            return;
+        };
+        const token = createToken(user);
+        res.cookie('token',token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'none',
+            maxAge: 60 * 60 * 3000,
+        });
+
+        user.password = "*****";
+        await OTPModel.deleteOne({email, otp});
+        const response = genericResponse(true, 'OTP verified', null, null, user);
+        res.status(200).json(response);
+    }catch(err){
+        const response = genericResponse(false, 'Failed to verify OTP', null, error instanceof Error? error.message : 'Unknown error', null);
+        res.status(500).json(response);
+    };
+};
+
+export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP};

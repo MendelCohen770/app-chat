@@ -1,6 +1,10 @@
 import { match } from 'assert';
 import mongoose, { Schema, Document} from 'mongoose'
 
+export enum Role{
+    admin = 0,
+    user = 1,
+};
 export interface IUser extends Document {
     _id: string,
     username: string,
@@ -9,7 +13,7 @@ export interface IUser extends Document {
     phone: string,
     createdAt: Date;
     profileIcon?: string; // שדה אופציונלי לאייקון המשתמש
-    role: 'user' | 'admin';
+    role: Role;
 }
 const UserSchema: Schema = new Schema<IUser>({
     username: {type: String, required: true, unique: true, minlength: 2},
@@ -18,7 +22,7 @@ const UserSchema: Schema = new Schema<IUser>({
     phone: {type: String, required: true, unique: true, match: /^[0-9+\-]{9,14}$/},
     createdAt: { type: Date, default: Date.now },
     profileIcon: { type: String, default: '' },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    role: { type: Number, enum: Object.values(Role), default: Role.user},
 }, { timestamps: true});
 
 const User = mongoose.model<IUser>('User', UserSchema);

@@ -14,7 +14,7 @@ const port = process.env.PORT || 3001;
 
 DBconnect();
 app.use(cors({
-  origin: 'https://your-frontend-url.com',
+  origin: 'http://localhost:5173',
   credentials: true, 
 }))
 app.use(cookieParser());

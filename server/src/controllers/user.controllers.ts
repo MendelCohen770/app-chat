@@ -6,7 +6,7 @@ import { error, log } from 'console';
 import OTPModel from '../models/otp.schema';
 
 
-const singUp = async (req : Request, res : Response) => {
+const signUp = async (req : Request, res : Response) => {
     const {username, email, password, phone} = req.body;
 
     if(!username || !email || !password || !phone){
@@ -43,12 +43,16 @@ const singUp = async (req : Request, res : Response) => {
             return;
         }
         let newPassword: string = await bcrypt.hash(password, 10);
+        
         let user = new User({username, email, password: newPassword, phone});
+        await user.validate();
+        console.log("Validation passed!---------------------------");
         await user.save();
         user.password = '*****';
         const response = genericResponse(true, 'User created successfully', null, null, user);
         res.status(200).json(response);
     }catch(err){
+        console.log(err);
         const response = genericResponse(false, 'Error creating user', null, err instanceof Error ? err.message : 'Unknown error', null);
         res.status(500).json(response);
     }
@@ -361,4 +365,4 @@ const verifyOTP = async (req : Request, res : Response) => {
     };
 };
 
-export {singUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP};
+export {signUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP};

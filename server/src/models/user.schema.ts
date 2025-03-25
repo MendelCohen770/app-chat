@@ -22,7 +22,7 @@ const UserSchema: Schema = new Schema<IUser>({
     phone: {type: String, required: true, unique: true, match: /^[0-9+\-]{9,14}$/},
     createdAt: { type: Date, default: Date.now },
     profileIcon: { type: String, default: '' },
-    role: { type: Number, enum: Object.values(Role), default: Role.user},
+    role: { type: Number, enum: [Role.admin, Role.user], default: Role.user},
 }, { timestamps: true});
 
 const User = mongoose.model<IUser>('User', UserSchema);

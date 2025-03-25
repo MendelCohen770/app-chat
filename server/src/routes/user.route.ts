@@ -1,7 +1,7 @@
 import express from 'express';
 import { authMiddleware, checkRole } from '../middlewares/middel'
 import {
-    singUp,
+    signUp,
     updateUser,
     searchUser,
     deleteUser,
@@ -16,7 +16,7 @@ import {
 
 const userRoute = express.Router();
 
-userRoute.post('/singUp', singUp);
+userRoute.post('/signUp', signUp);
 userRoute.post('/login', login);
 userRoute.post('/otpService', otpService);
 userRoute.post('/verifyOTP', verifyOTP);

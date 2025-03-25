@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { VscEyeClosed, VscEye } from "react-icons/vsc";
+import { login} from '../service/api/userApi'
 
 const LoginPage: React.FC = () => {
 
@@ -8,17 +9,12 @@ const LoginPage: React.FC = () => {
     const [password, setPassword] = useState<string>('');
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Logging in with:', username, password);
-    }
-
-    const handleUsername = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setUsername(e.target.value);
-    }
-
-    const handlePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setPassword(e.target.value);
+        const res = await login(username, password);
+        console.log('Logging in with:',res);
+        setUsername('');
+        setPassword('');
     }
 
     const handleGoogleLogin = () => {
@@ -39,7 +35,7 @@ const LoginPage: React.FC = () => {
                             type="text"
                             placeholder="Enter your username"
                             className="mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-yellow-200"
-                            onChange={(e) => handleUsername(e)}
+                            onChange={(e) => setUsername(e.target.value)}
                         />
                     </div>
                     <div className='relative'>
@@ -51,7 +47,7 @@ const LoginPage: React.FC = () => {
                             value={password}
                             placeholder='Enter your password'
                             className="mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-yellow-200"
-                            onChange={(e) => handlePassword(e)}
+                            onChange={(e) => setPassword(e.target.value)}
                         />
                         <div onClick={() => setShowPassword(!showPassword)} className="absolute bottom-1 right-5 transform -translate-y-1/2 cursor-pointer ">
                             {showPassword ? <VscEye size={20}/> : <VscEyeClosed size={20}/>}
@@ -77,7 +73,6 @@ const LoginPage: React.FC = () => {
     // const [password, setPassword] = useState('');
     // const [otp, setOtp] = useState('');
     // const [isOtpLogin, setIsOtpLogin] = useState(false);
-
     // const handleSubmit = (e: React.FormEvent) => {
     //     e.preventDefault();
     //     console.log('Logging in with:', username, password);

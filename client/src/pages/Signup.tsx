@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { VscEyeClosed, VscEye } from "react-icons/vsc";
-import { signup } from '../service/api/userApi'
+import { signup } from '../hooks/UseUser'
+import { ISignup } from '../models/signup';
+import { IResponse } from '../models/response';
 
 const Signup = () => {
 
@@ -26,12 +28,17 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if(!username ||!email ||!password ||!confirmPassword ||!phone){
+      alert('All fields are required!');
+      return;
+    };
     if(password != confirmPassword){
       alert('Passwords do not match!');
       return;
-    }
-    const res = await signup(username, password, email, phone);
-    console.log("Submit", res);
+    };
+    const user: ISignup = {username, password, email, phone};
+    const response: IResponse = await signup(user);
+    console.log("Submit", response);
     setUsername('');
     setEmail('');
     setPassword('');

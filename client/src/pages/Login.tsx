@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { VscEyeClosed, VscEye } from "react-icons/vsc";
-import { login} from '../service/api/userApi'
+import { login} from '../hooks/UseUser'
+import { IResponse } from '../models/response';
 
 const LoginPage: React.FC = () => {
 
@@ -11,7 +12,13 @@ const LoginPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const res = await login(username, password);
+        if(!username || !password){
+            alert('Please fill in all fields');
+            return;
+        };
+        const res: IResponse = await login(username, password);
+        console.log(res.data);
+        alert(res.displayMessage)
         console.log('Logging in with:',res);
         setUsername('');
         setPassword('');

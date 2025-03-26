@@ -3,13 +3,24 @@ import { ISignup } from "../models/signup";
 
 const BASE_URL = 'http://localhost:3000/user'
 
-export const signUp = async (user: ISignup) => {
+export const signup = async (user: ISignup): Promise<any> => {
     try{
-    const response = await axios.post(`${BASE_URL}/singUp`,user,{ withCredentials: true } )
-    if(response.data){
-        
-    }
+    const response = await axios.post(`${BASE_URL}/singUp`,user,{ withCredentials: true } );
+    return response.data;
     }catch(e){
-        console.error(e);
+        console.error("Signup failed", e);
+        return e;
     }
-}
+};
+
+export const login = async (username: string, password: string): Promise<any> => {
+    try{
+        const response = await axios.post(`${BASE_URL}/login`, {username, password}, {withCredentials: true})
+        return response.data;
+    }catch(e ) {
+      console.log("Login failed", e);
+        return e;
+    }
+};
+
+

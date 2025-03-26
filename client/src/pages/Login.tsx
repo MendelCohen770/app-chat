@@ -22,31 +22,33 @@ const LoginPage: React.FC = () => {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-yellow-200">
-            <div className="bg-yellow-300 p-8 rounded-lg shadow-lg w-full max-w-sm">
-                <h2 className='text-2xl font-bold text-center text-gray-800 mb-6'>Login</h2>
+        <div className="flex items-center justify-center min-h-screen bg-slate-900 select-none">
+            <div className="bg-slate-800 p-8 rounded-lg shadow-lg w-full max-w-sm">
+                <h2 className='text-2xl font-bold text-center text-gray-400 mb-6'>Login</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700">username:</label>
+                        <label htmlFor="username" className="block text-sm font-medium text-gray-400">username:</label>
                         <input
                             id='username'
                             name='username'
                             value={username}
                             type="text"
+                            required
                             placeholder="Enter your username"
-                            className="mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-yellow-200"
+                            className="mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white"
                             onChange={(e) => setUsername(e.target.value)}
                         />
                     </div>
                     <div className='relative'>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">password:</label>
+                        <label htmlFor="password" className="block text-sm font-medium text-gray-400">password:</label>
                         <input
                             type={showPassword ? 'text' : 'password'}
                             id='password'
                             name='password'
+                            required
                             value={password}
                             placeholder='Enter your password'
-                            className="mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-yellow-200"
+                            className="mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white"
                             onChange={(e) => setPassword(e.target.value)}
                         />
                         <div onClick={() => setShowPassword(!showPassword)} className="absolute bottom-1 right-5 transform -translate-y-1/2 cursor-pointer ">
@@ -63,7 +65,7 @@ const LoginPage: React.FC = () => {
                     <button type="submit" className="w-full py-3 bg-orange-400 text-white font-semibold rounded-md hover:bg-orange-500 transition duration-200">Login</button>
 
                     <div className="mt-4 text-center">
-                        <p>Don't have an account? <a href="/signup" className="text-blue-500 hover:underline">Sign up</a></p>
+                        <p className='text-white'>Don't have an account? <a href="/signup" className="text-blue-500 hover:underline">Sign up</a></p>
                    </div>
                 </form>
             </div>

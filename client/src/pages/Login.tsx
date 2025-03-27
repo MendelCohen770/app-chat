@@ -12,6 +12,16 @@ const LoginPage: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
+    const [touched, setTouched] = useState({
+        username: false,
+        password: false
+    });
+
+    const handleFocus = (field: string) => {
+        setTouched({ ...touched, [field]: true });
+    };
+    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if(!username || !password){
@@ -48,8 +58,9 @@ const LoginPage: React.FC = () => {
                             type="text"
                             required
                             placeholder="Enter your username"
-                            className="mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white"
+                            className={`mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:border-2 bg-slate-700 text-white ${touched.username && ('valid:border-green-500 invalid:border-red-500')}`}
                             onChange={(e) => setUsername(e.target.value)}
+                            onFocus={() => handleFocus('username')}
                         />
                     </div>
 
@@ -62,8 +73,9 @@ const LoginPage: React.FC = () => {
                             required
                             value={password}
                             placeholder='Enter your password'
-                            className="mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white"
+                            className={`mt-2 p-3 w-full border border-gray-300 rounded-md focus:outline-none  focus:border-2 bg-slate-700 text-white ${touched.password && ('valid:border-green-500 invalid:border-red-500')}`}
                             onChange={(e) => setPassword(e.target.value)}
+                            onFocus={() => handleFocus('password')}
                         />
                         <div onClick={() => setShowPassword(!showPassword)} className="absolute bottom-1 right-5 transform -translate-y-1/2 cursor-pointer ">
                             {showPassword ? <VscEye size={20}/> : <VscEyeClosed size={20}/>}

@@ -38,6 +38,10 @@ const Signup = () => {
     };
     const user: ISignup = {username, password, email, phone};
     const response: IResponse = await signup(user);
+    if(!response.isSuccessful){
+      console.log(response.displayMessage);
+      return;
+    }
     console.log("Submit", response);
     setUsername('');
     setEmail('');

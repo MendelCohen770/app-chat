@@ -3,12 +3,14 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { VscEyeClosed, VscEye } from "react-icons/vsc";
 import { login} from '../hooks/UseUser'
 import { IResponse } from '../models/response';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
 
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [showPassword, setShowPassword] = useState(false);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,11 +19,15 @@ const LoginPage: React.FC = () => {
             return;
         };
         const res: IResponse = await login(username, password);
+        if(!res.isSuccessful){
+            console.log(res.displayMessage);
+            return;
+        }
         console.log(res.data);
-        alert(res.displayMessage)
         console.log('Logging in with:',res);
         setUsername('');
         setPassword('');
+        navigate('/home');
     }
 
     const handleGoogleLogin = () => {
@@ -46,7 +52,7 @@ const LoginPage: React.FC = () => {
                             onChange={(e) => setUsername(e.target.value)}
                         />
                     </div>
-                    
+
                     <div className='relative'>
                         <label htmlFor="password" className="block text-sm font-medium text-gray-400">password:</label>
                         <input

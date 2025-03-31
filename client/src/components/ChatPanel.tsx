@@ -2,7 +2,7 @@ import React from 'react'
 
 const ChatPanel = () => {
   return (
-    <div>
+    <div className='bg-slate-300 w-full h-full'>
       ChatPanel
     </div>
   )

@@ -1,6 +1,170 @@
-import React from "react";
+import React, { useState } from "react";
+
+const contact = [
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+  {
+    icon: '',
+    username: 'jak bron',
+    lastMassage: '',
+    lastTime: new Date().getTime()
+  },
+]
 
 const UserPanel = () => {
+  const [searchInput, setSearchInput] = useState('');
+  
+
+
   return (
     <div className="bg-slate-800 w-full h-full float-start   ">
       <div className="flex justify-center items-start p-3">
@@ -15,7 +179,14 @@ const UserPanel = () => {
           />
         </div>
       </div>
-      UserPanel
+      <div className="p-1 max-h-[90%] overflow-y-auto">
+      {contact.map((c, index) => (
+        <div key={index} className="py-2 border-b border-gray-300">
+          <p className="text-lg font-semibold">{c.username}</p>
+          <p>{c.lastTime}</p>
+        </div>
+      ))}
+    </div>
     </div>
   );
 };

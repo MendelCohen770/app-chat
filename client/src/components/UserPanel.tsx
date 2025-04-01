@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { IoClose } from "react-icons/io5";
+
 
 const contact = [
   {
@@ -162,7 +164,20 @@ const contact = [
 
 const UserPanel = () => {
   const [searchInput, setSearchInput] = useState('');
+  const [filteredContacts, setFilteredContacts] = useState(contact);
   
+  
+  const handelInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    setSearchInput(e.target.value);
+    setFilteredContacts(contact.filter((c) => c.username.toLowerCase().includes(e.target.value.toLowerCase())));
+  }
+
+  const closeInput = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    e.preventDefault();
+    setSearchInput('');
+    setFilteredContacts(contact);
+  }
 
 
   return (
@@ -172,16 +187,27 @@ const UserPanel = () => {
           <h1>ddddddd</h1>
           {/* המבורגר: שבתוכו יהיו כל מיני הגדרות. "לפי דעתי זה אמור ליהות קומפוננטה נפרדת". עיין בטלגרם ווב */}
         </div>
-        <div className="w-4/5">
+        <div className="w-4/5 relative">
           <input
-            type="search"
-            className="w-full h-11 rounded-xl p-3 bg-slate-700 text-white"
+            type="text"
+            className="w-full h-11 rounded-xl p-3 bg-slate-700 text-white focus:ring-2 focus:ring-blue-700 focus:outline-none pr-10"
+            placeholder="חיפוש"
+            value={searchInput}
+            onChange={(e) => handelInput(e)}
           />
+           {searchInput && (
+        <button
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+          onClick={(e) => closeInput(e)}
+        >
+          <IoClose size={20} />
+        </button>
+      )}
         </div>
       </div>
       <div className="p-1 max-h-[90%] overflow-y-auto">
-      {contact.map((c, index) => (
-        <div key={index} className="py-2 border-b border-gray-300">
+      {filteredContacts.map((c, index) => (
+        <div key={index} className="py-2 border-b border-gray-700 px-2">
           <p className="text-lg font-semibold">{c.username}</p>
           <p>{c.lastTime}</p>
         </div>

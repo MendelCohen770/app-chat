@@ -9,7 +9,7 @@ export default function Home() {
 
         <div className="absolute top-0 bottom-0 left-1/4 w-0.5 bg-gray-500"></div>
 
-        <div className="w-1/4 flex justify-center items-center p-4">
+        <div className="w-1/4 flex justify-center items-center p-2">
           <UserPanel/>
         </div>
 

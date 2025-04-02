@@ -190,7 +190,7 @@ const UserPanel = () => {
         <div className="w-4/5 relative">
           <input
             type="text"
-            className="w-full h-11 rounded-xl p-3 bg-slate-700 text-white focus:ring-2 focus:ring-blue-700 focus:outline-none pr-10"
+            className="w-full h-11 rounded-xl p-3 bg-slate-700 text-white focus:ring-2 focus:ring-gray-300 focus:outline-none pr-10"
             placeholder="חיפוש"
             value={searchInput}
             onChange={(e) => handelInput(e)}
@@ -200,14 +200,14 @@ const UserPanel = () => {
           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
           onClick={(e) => closeInput(e)}
         >
-          <IoClose size={20} />
+          <IoClose size={25}  className="text-blue-600 hover:text-blue-400"/>
         </button>
       )}
         </div>
       </div>
       <div className="p-1 max-h-[90%] overflow-y-auto">
       {filteredContacts.map((c, index) => (
-        <div key={index} className="py-2 border-b border-gray-700 px-2">
+        <div key={index} className="p-2 border-b border-gray-700 ">
           <p className="text-lg font-semibold">{c.username}</p>
           <p>{c.lastTime}</p>
         </div>

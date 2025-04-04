@@ -4,6 +4,7 @@ import EmojiPicker, { Theme } from 'emoji-picker-react';
 import SendButton from './SendButton';
 import { BsEmojiSunglasses } from "react-icons/bs";
 import MediaUploader from './MediaUploader';
+import Recordings from './Recordings';
 
 interface sendMessageProps {
   sendMessage: (message: string) => void;
@@ -20,16 +21,18 @@ const MessageInput : React.FC<sendMessageProps> = ({sendMessage}) => {
     
   };
   console.log(message);
-
+  
   const handleMessageChange = (newMessage: string) => {
     setMessage(newMessage);
+    
   }
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 
   }
 
   const handleSendMessage = () => {
-
+    sendMessage(message);
+    setMessage('');
   }
   return (
     <div className='relative flex justify-center items-end w-full'>
@@ -43,8 +46,8 @@ const MessageInput : React.FC<sendMessageProps> = ({sendMessage}) => {
           <EmojiPicker onEmojiClick={handleEmojiClick} theme={'dark' as Theme}/>
         </div>
       )}
-      <TextInput onMessageChange={handleMessageChange} message={message} onSend={handleSendMessage}/>
-        <SendButton/>
+      <TextInput onMessageChange={handleMessageChange} message={message}/>
+      {message ? (<SendButton onSend={handleSendMessage}/>): (<Recordings/>)}
 
     </div>
   )

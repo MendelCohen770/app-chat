@@ -8,6 +8,7 @@ const ChatPanel = () => {
   const [emoji, setEmoji] = useState<string>('');
   const [isTexting, setIsTexting] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  console.log(message);
   
   
   return (

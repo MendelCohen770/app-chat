@@ -2,9 +2,8 @@ import React, { useState } from 'react'
 interface TextInputProps {
     onMessageChange:(message: string) => void;
     message: string;
-    onSend: () => void;
 }
-const TextInput : React.FC<TextInputProps> = ({onMessageChange, message, onSend}) => {
+const TextInput : React.FC<TextInputProps> = ({onMessageChange, message}) => {
   
   return (
     <div className='w-2/4'>

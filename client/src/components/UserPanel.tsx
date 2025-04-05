@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { IoClose } from "react-icons/io5";
+import { RxHamburgerMenu } from "react-icons/rx";
 
 
 const contact = [
@@ -162,11 +163,34 @@ const contact = [
   },
 ]
 
+
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+  phone: string;
+  profileIcon: string; // כאן תמונה או אייקון
+  role: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const UserPanel = () => {
   const [searchInput, setSearchInput] = useState('');
   const [filteredContacts, setFilteredContacts] = useState(contact);
   
+  const users: User[] = Array.from({ length: 30 }, (_, index) => ({
+    _id: `user${index + 1}`,
+    username: `user${index + 1}`,
+    email: `user${index + 1}@gmail.com`,
+    phone: `05412345${index + 10}`,
+    profileIcon: '',
+    role: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
   
+  console.log(users);
   const handelInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     setSearchInput(e.target.value);
@@ -181,17 +205,17 @@ const UserPanel = () => {
 
 
   return (
-    <div className="bg-slate-800 w-full h-full float-start   ">
+    <div className="bg-gray-900 w-full h-full float-start  select-none ">
       <div className="flex justify-center items-start p-3">
-        <div className="w-1/5">
-          <h1>ddddddd</h1>
+        <div className="w-1/5 flex justify-center items-center p-2">
+        <RxHamburgerMenu size={30}/>
           {/* המבורגר: שבתוכו יהיו כל מיני הגדרות. "לפי דעתי זה אמור ליהות קומפוננטה נפרדת". עיין בטלגרם ווב */}
         </div>
         <div className="w-4/5 relative">
           <input
             type="text"
-            className="w-full h-11 rounded-xl p-3 bg-slate-700 text-white focus:ring-2 focus:ring-gray-300 focus:outline-none pr-10"
-            placeholder="חיפוש"
+            className="w-full h-11 rounded-2xl p-3 bg-slate-700 text-white focus:ring-2 focus:ring-blue-600 focus:outline-none pr-10"
+            placeholder="Search"
             value={searchInput}
             onChange={(e) => handelInput(e)}
           />
@@ -206,11 +230,19 @@ const UserPanel = () => {
         </div>
       </div>
       <div className="p-1 max-h-[90%] overflow-y-auto">
-      {filteredContacts.map((c, index) => (
-        <div key={index} className="p-2 border-b border-gray-700 ">
-          <p className="text-lg font-semibold">{c.username}</p>
-          <p>{c.lastTime}</p>
+      {users.map((user) => (
+        <div key={user._id} className="flex items-center p-3 rounded-lg hover:bg-gray-800 cursor-pointer">
+        {/* תמונת פרופיל או אייקון */}
+        <img 
+          src={user.profileIcon || '../../public/simple-user-default-icon-free.png'} 
+          alt="profile" 
+          className="w-12 h-12 rounded-full mr-4 text-gray-500"
+        />
+        <div className="flex flex-col">
+          <span className="text-lg font-semibold text-gray-700">{user.username}</span>
+          <span className="text-sm text-gray-500">Online</span>
         </div>
+      </div>
       ))}
     </div>
     </div>

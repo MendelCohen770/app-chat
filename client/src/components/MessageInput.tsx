@@ -43,7 +43,7 @@ const MessageInput : React.FC<sendMessageProps> = ({sendMessage}) => {
       </div>
       {showPicker && (
         <div className='absolute bottom-14 '>
-          <EmojiPicker onEmojiClick={handleEmojiClick} theme={'dark' as Theme}/>
+          <EmojiPicker onEmojiClick={handleEmojiClick} theme={'dark' as Theme} />
         </div>
       )}
       <TextInput onMessageChange={handleMessageChange} message={message}/>

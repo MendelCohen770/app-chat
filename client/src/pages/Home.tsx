@@ -2,7 +2,32 @@ import React from 'react'
 import UserPanel from '../components/UserPanel'
 import ChatPanel from '../components/ChatPanel'
 
+
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+  phone: string;
+  profileIcon: string; // כאן תמונה או אייקון
+  role: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function Home() {
+
+  const users: User[] = Array.from({ length: 30 }, (_, index) => ({
+    _id: `user${index + 1}`,
+    username: `user${index + 1}`,
+    email: `user${index + 1}@gmail.com`,
+    phone: `05412345${index + 10}`,
+    profileIcon: '',
+    role: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
+
+
   return (
     <div className="bg-slate-900 h-svh text-gray-500 flex justify-center items-center flex-col p-4">
       <div className="border-slate-700 border-2 w-full h-full flex relative rounded-xl">

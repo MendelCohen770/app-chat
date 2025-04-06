@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { RxHamburgerMenu } from "react-icons/rx";
+import { useChat, User } from "../context/ChatContext";
 
 
 const contact = [
@@ -164,43 +165,41 @@ const contact = [
 ]
 
 
-interface User {
-  _id: string;
-  username: string;
-  email: string;
-  phone: string;
-  profileIcon: string; // כאן תמונה או אייקון
-  role: number;
-  createdAt: string;
-  updatedAt: string;
-}
+const users: User[] = Array.from({ length: 30 }, (_, index) => ({
+  _id: `user${index + 1}`,
+  username: `user${index + 1}`,
+  email: `user${index + 1}@gmail.com`,
+  phone: `05412345${index + 10}`,
+  profileIcon: '',
+  role: 1,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+}));
 
 const UserPanel = () => {
   const [searchInput, setSearchInput] = useState('');
-  const [filteredContacts, setFilteredContacts] = useState(contact);
+  const [filteredContacts, setFilteredContacts] = useState(users);
+
+  const chatContext = useChat();
+  if (!chatContext) {
+    throw new Error("useChat must be used within a ChatProvider");
+  }
+  const { setSelectedUser} = chatContext;
   
-  const users: User[] = Array.from({ length: 30 }, (_, index) => ({
-    _id: `user${index + 1}`,
-    username: `user${index + 1}`,
-    email: `user${index + 1}@gmail.com`,
-    phone: `05412345${index + 10}`,
-    profileIcon: '',
-    role: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }));
   
-  console.log(users);
+  
+  
+  console.log(filteredContacts);
   const handelInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     setSearchInput(e.target.value);
-    setFilteredContacts(contact.filter((c) => c.username.toLowerCase().includes(e.target.value.toLowerCase())));
+    setFilteredContacts(users.filter((c) => c.username.toLowerCase().includes(e.target.value.toLowerCase())));
   }
 
   const closeInput = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
     setSearchInput('');
-    setFilteredContacts(contact);
+    setFilteredContacts(users);
   }
 
 
@@ -230,8 +229,8 @@ const UserPanel = () => {
         </div>
       </div>
       <div className="p-1 max-h-[90%] overflow-y-auto">
-      {users.map((user) => (
-        <div key={user._id} className="flex items-center p-3 rounded-lg hover:bg-gray-800 cursor-pointer">
+      {filteredContacts.map((user) => (
+        <div key={user._id} onClick={() => setSelectedUser(user)} className="flex items-center p-3 rounded-lg hover:bg-gray-800 cursor-pointer">
         {/* תמונת פרופיל או אייקון */}
         <img 
           src={user.profileIcon || '../../public/simple-user-default-icon-free.png'} 

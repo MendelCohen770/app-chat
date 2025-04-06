@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import TextInput from './TextInput'
 import MessageInput from './MessageInput';
+import MessageHeader from './MessageHeader';
 
 const ChatPanel = () => {
   const [message, setMessage] = useState<string>('');
@@ -12,11 +13,18 @@ const ChatPanel = () => {
   
   
   return (
-    <div className='bg-gray-900 w-full h-full flex flex-col justify-end p-4'>
-      <div>
+    <div className='bg-gray-900 w-full h-full flex flex-col  '>
+      <div className='mb-4'>
         {/* כאן יהיה קומפוננטה של הפרופיל של אותו איש קשר שהמשתמש מדבר איתו */}
+        <MessageHeader/>
       </div>
-      <div>
+      <div className='bg-gray-800 h-96 overflow-y-auto flex-1'>
+        {/* כאן יהיה קומפוננטה של כל ההודעות שהיו עד כה בין שני המשתמשים */}
+        <div >
+          {/* הודעות */}
+        </div>
+      </div>
+      <div className='mt-4'>
     {/* כאן יהיה קומפוננטה של ה chat עצמו עם המקלדת וההודעות. */}
     <MessageInput 
     sendMessage={setMessage}

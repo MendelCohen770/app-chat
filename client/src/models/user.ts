@@ -3,13 +3,14 @@ export enum Role{
     user = 1,
 };
 
-export interface IUser{
-    _id: string,
-    username: string,
-    email: string,
-    password: string,
-    phone: string,
-    createdAt: Date;
-    profileIcon?: string; // שדה אופציונלי לאייקון המשתמש
+export interface IUser {
+    _id: string;
+    username: string;
+    email: string;
+    phone: string;
+    password?: string;
+    profileIcon: string;
     role: Role;
+    createdAt: string;
+    updatedAt: string;
 };

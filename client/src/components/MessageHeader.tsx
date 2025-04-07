@@ -4,7 +4,7 @@ import ChatActions from './ChatActions'
 
 const MessageHeader = () => {
   return (
-    <div className='w-full h-16 bg-gray-800'>
+    <div className='w-full h-16 bg-gray-800 p-2 '>
       <ContactInfo/>
       <ChatActions/>
     </div>

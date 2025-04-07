@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useChat, User } from "../context/ChatContext";
+import { useChat  } from "../context/ChatContext";
 
 const ContactInfo = () => {
   const chatContext = useChat();
@@ -8,8 +8,8 @@ const ContactInfo = () => {
 
 
   return (
-    <div>
-      <div className="flex items-center p-3 rounded-lg hover:bg-gray-800 cursor-pointer">
+
+      <div onClick={() => console.log(selectedUser)} className="flex items-center p-3 h-full hover:bg-gray-800 cursor-pointer">
         {/* תמונת פרופיל או אייקון */}
         <img
           src={
@@ -26,7 +26,6 @@ const ContactInfo = () => {
           <span className="text-sm text-gray-500">Online</span>
         </div>
       </div>
-    </div>
   );
 };
 

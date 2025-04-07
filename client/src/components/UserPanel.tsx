@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { RxHamburgerMenu } from "react-icons/rx";
-import { useChat, User } from "../context/ChatContext";
+import { useChat } from "../context/ChatContext";
+import { IUser } from "../models/user";
 
 
 const contact = [
@@ -165,7 +166,7 @@ const contact = [
 ]
 
 
-const users: User[] = Array.from({ length: 30 }, (_, index) => ({
+const users: IUser[] = Array.from({ length: 30 }, (_, index) => ({
   _id: `user${index + 1}`,
   username: `user${index + 1}`,
   email: `user${index + 1}@gmail.com`,

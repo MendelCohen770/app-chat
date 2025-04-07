@@ -13,7 +13,7 @@ const ChatPanel = () => {
   
   
   return (
-    <div className='bg-gray-900 w-full h-full flex flex-col  '>
+    <div className='bg-gray-900 w-full h-full flex flex-col select-none '>
       <div className='mb-4'>
         {/* כאן יהיה קומפוננטה של הפרופיל של אותו איש קשר שהמשתמש מדבר איתו */}
         <MessageHeader/>

@@ -1,26 +1,18 @@
 import React, { createContext, useContext, useState } from "react";
+import { IUser } from "../models/user";
 
 
-export interface User {
-  _id: string;
-  username: string;
-  email: string;
-  phone: string;
-  profileIcon: string; // כאן תמונה או אייקון
-  role: number;
-  createdAt: string;
-  updatedAt: string;
-}
+
 
 type ChatContextType = {
-    selectedUser: User | null;
-    setSelectedUser: (user: User | null) => void;
+    selectedUser: IUser | null;
+    setSelectedUser: (user: IUser | null) => void;
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
 
     return (
         <ChatContext.Provider value={{ selectedUser, setSelectedUser }}>

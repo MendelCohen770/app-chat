@@ -5,165 +5,7 @@ import { useChat } from "../context/ChatContext";
 import { IUser } from "../models/user";
 
 
-const contact = [
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
 
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-  {
-    icon: '',
-    username: 'jak bron',
-    lastMassage: '',
-    lastTime: new Date().getTime()
-  },
-]
 
 
 const users: IUser[] = Array.from({ length: 30 }, (_, index) => ({
@@ -234,13 +76,13 @@ const UserPanel = () => {
         <div key={user._id} onClick={() => setSelectedUser(user)} className="flex items-center p-3 rounded-lg hover:bg-gray-800 cursor-pointer">
         {/* תמונת פרופיל או אייקון */}
         <img 
-          src={user.profileIcon || '../../public/simple-user-default-icon-free.png'} 
+          src={user.profileIcon || 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg' || '../../public/simple-user-default-icon-free.png'} 
           alt="profile" 
           className="w-12 h-12 rounded-full mr-4 text-gray-500"
         />
         <div className="flex flex-col">
-          <span className="text-lg font-semibold text-gray-700">{user.username}</span>
-          <span className="text-sm text-gray-500">Online</span>
+          <span className="text-lg font-semibold text-gray-100">{user.username}</span>
+          <span className="text-sm text-gray-300">Online</span>
         </div>
       </div>
       ))}

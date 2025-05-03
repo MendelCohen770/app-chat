@@ -12,7 +12,7 @@ import {
     getUserDetails,
     otpService,
     verifyOTP
-} from '../controllers/user.controllers'
+} from '../controllers/user.controller'
 
 const userRoute = express.Router();
 

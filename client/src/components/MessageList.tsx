@@ -75,10 +75,7 @@ const messages: Message[] = [
 ];
 
 const MessageList = () => {
-    const message = {
-        text: 'Hello, how are you?',
-        timestamp: '2023-10-01 12:00:00'
-    }
+   
   return (
     <div className='bg-zinc-300 flex-1 overflow-y-auto w-9/12 flex flex-col p-4 '>
       {messages.map( message => (

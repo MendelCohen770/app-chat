@@ -1,7 +1,23 @@
 import io from "socket.io-client";
+let socket: ReturnType<typeof io> | null = null;
+export const connectSocket = (userId: string) => {
+    socket = io('http://localhost:3000', {
+        transports: ['websocket'],
+        transportOptions: {
+            polling: {
+                extraHeaders: {
+                    // Headers שאתה רוצה לשלוח כמו Authorization
+                },
+                withCredentials: true, // כאן המקום הנכון
+            },
+        },
+    });
 
-const socket = io('http://localhost:3000', {
-    // transports: ['websocket'],
-    // withCredentials: true, // Removed as it is not a valid property
-});
-export default socket;
+    socket.on('connect', () => {
+        console.log('🔌 Socket connected');
+        socket?.emit('register', userId); // רישום המשתמש בשרת
+    });
+};
+
+
+export const getSocket = () => socket;

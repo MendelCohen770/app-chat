@@ -4,12 +4,15 @@ import { VscEyeClosed, VscEye } from "react-icons/vsc";
 import { login} from '../hooks/UseUser'
 import { IResponse } from '../models/response';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
+import { IUser } from '../models/user';
 
 const LoginPage: React.FC = () => {
 
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [showPassword, setShowPassword] = useState(false);
+    const userContext = useUser();
     const navigate = useNavigate();
 
     const [touched, setTouched] = useState({
@@ -32,6 +35,16 @@ const LoginPage: React.FC = () => {
         if(!res.isSuccessful){
             console.log(res.displayMessage);
             return;
+        }
+
+        if (!userContext) {
+            throw new Error("useUser must be used within a UserProvider");
+        }
+        const { setUser } = userContext;
+        if (res.data && typeof res.data === 'object' && '_id' in res.data) {
+            setUser(res.data as IUser);
+        } else {
+            console.error('Invalid user data:', res.data);
         }
         console.log(res.data);
         console.log('Logging in with:',res);

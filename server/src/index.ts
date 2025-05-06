@@ -19,7 +19,7 @@ const port = process.env.PORT || 3001;
 DBconnect();
 const server = http.createServer(app);
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173','http://localhost:5173/home'],
   credentials: true, 
 }))
 const io = new Server(server,{

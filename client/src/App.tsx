@@ -4,19 +4,11 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Home from './pages/Home';
 import { useEffect } from 'react';
-import socket from './service/socket';
+import { useUser } from './context/UserContext';
+import { IUser } from './models/user';
 
 function App() {
   
-  useEffect(() => {
-    socket.on("connect", () => {
-      console.log("התחברנו לשרת עם מזהה:", socket.id);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
   return (
     <>
     <BrowserRouter>

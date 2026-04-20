@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { Popover, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import { useChat } from '../context/useChat';
 import { useUser } from '../context/useUser';
+import { usePresence } from '../context/usePresence';
 import { IUser } from '../models/user';
 import { useAsync } from '../hooks/useAsync';
 import { LoadingState, EmptyState, ErrorState } from '../components/ui/States';
@@ -34,6 +35,7 @@ const UserPanel = () => {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(menuAnchor);
   const chatContext = useChat();
+  const { isOnline } = usePresence();
   const { data: users, isLoading, isError, refetch } = useAsync<IUser[]>(fetchUsers, { deps: [] });
 
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>) => setMenuAnchor(e.currentTarget);
@@ -121,6 +123,8 @@ const UserPanel = () => {
         {filtered.map((user, idx) => {
           const isSelected = selectedUser?._id === user._id;
           const isActive = idx === activeIndex;
+          const userOnline = isOnline(user._id);
+          const statusLabel = userOnline ? t('common.online') : t('common.offline');
           return (
             <li key={user._id}>
               <button
@@ -140,21 +144,35 @@ const UserPanel = () => {
                     : 'hover:bg-slate-800 text-slate-100',
                 ].join(' ')}
               >
-                <img
-                  src={resolveMediaUrl(user.profileIcon) || DEFAULT_AVATAR}
-                  alt=""
-                  aria-hidden="true"
-                  className="w-12 h-12 rounded-full me-3 object-cover bg-slate-700"
-                />
+                <span className="relative inline-block me-3">
+                  <img
+                    src={resolveMediaUrl(user.profileIcon) || DEFAULT_AVATAR}
+                    alt=""
+                    aria-hidden="true"
+                    className="w-12 h-12 rounded-full object-cover bg-slate-700"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={[
+                      'absolute bottom-0 end-0 block w-3.5 h-3.5 rounded-full ring-2',
+                      isSelected ? 'ring-blue-600' : 'ring-slate-900',
+                      userOnline ? 'bg-emerald-500' : 'bg-slate-500',
+                    ].join(' ')}
+                  />
+                </span>
                 <span className="flex flex-col min-w-0 flex-1">
                   <span className="text-base font-semibold truncate">{user.username}</span>
                   <span
                     className={[
                       'text-xs truncate',
-                      isSelected ? 'text-slate-100' : 'text-slate-400',
+                      isSelected
+                        ? 'text-slate-100'
+                        : userOnline
+                        ? 'text-emerald-400'
+                        : 'text-slate-400',
                     ].join(' ')}
                   >
-                    {t('common.online')}
+                    {statusLabel}
                   </span>
                 </span>
               </button>

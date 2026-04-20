@@ -6,14 +6,17 @@ import "./i18n";
 import DirectionProvider from "./i18n/DirectionProvider";
 import { ChatProvider } from "./context/ChatProvider";
 import { UserProvider } from "./context/UserProvider";
+import { PresenceProvider } from "./context/PresenceProvider";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <DirectionProvider>
       <UserProvider>
-        <ChatProvider>
-          <App />
-        </ChatProvider>
+        <PresenceProvider>
+          <ChatProvider>
+            <App />
+          </ChatProvider>
+        </PresenceProvider>
       </UserProvider>
     </DirectionProvider>
   </React.StrictMode>

@@ -195,6 +195,88 @@ const sendVoiceMessage = async (req: Request, res: Response) => {
     }
 };
 
-export { sendMessage, getMessages, sendVoiceMessage };
+const inferMediaType = (mime: string | undefined, explicit: string | undefined): MessageType => {
+    const normalized = (explicit || '').toLowerCase();
+    if (normalized === 'image' || normalized === 'video' || normalized === 'file' || normalized === 'audio') {
+        return normalized as MessageType;
+    }
+    const m = (mime || '').toLowerCase();
+    if (m.startsWith('image/')) return MessageType.image;
+    if (m.startsWith('video/')) return MessageType.video;
+    if (m.startsWith('audio/')) return MessageType.audio;
+    return MessageType.file;
+};
+
+const sendMediaMessage = async (req: Request, res: Response) => {
+    const authUserId = req.user?.id;
+    const file = (req as any).file as Express.Multer.File | undefined;
+
+    const cleanup = () => {
+        if (file) {
+            try { fs.unlinkSync(file.path); } catch (_) {}
+        }
+    };
+
+    if (!authUserId) {
+        cleanup();
+        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
+        res.status(401).json(response);
+        return;
+    }
+
+    const { receiver, type, content } = req.body as { receiver?: string; type?: string; content?: string };
+
+    if (!receiver) {
+        cleanup();
+        const response = genericResponse(false, 'Please provide all the required fields', null, 'receiver field is missing', null);
+        res.status(400).json(response);
+        return;
+    }
+
+    if (!file) {
+        const response = genericResponse(false, 'No file uploaded', null, 'media field is missing', null);
+        res.status(400).json(response);
+        return;
+    }
+
+    try {
+        const resolvedType = inferMediaType(file.mimetype, type);
+        const mediaUrl = `/uploads/media/${file.filename}`;
+        const message = new Message({
+            sender: authUserId,
+            receiver,
+            type: resolvedType,
+            content: content || file.originalname || '',
+            media: mediaUrl,
+        });
+        await message.save();
+
+        try {
+            const io = getIO();
+            const payload = {
+                _id: message._id,
+                senderId: String(message.sender),
+                receiverId: String(message.receiver),
+                type: message.type,
+                content: message.content,
+                media: message.media,
+                createdAt: message.createdAt,
+            };
+            io.to(String(message.sender)).to(String(message.receiver)).emit('newMessage', payload);
+        } catch (_) {
+            // socket not ready, skip
+        }
+
+        const response = genericResponse(true, 'Media message sent successfully', null, null, message);
+        res.status(200).json(response);
+    } catch (err) {
+        console.log(err);
+        cleanup();
+        const response = genericResponse(false, 'Error sending media message', null, err instanceof Error ? err.message : 'Unknown error', null);
+        res.status(500).json(response);
+    }
+};
+
+export { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage };
 
 

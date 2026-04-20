@@ -98,6 +98,63 @@
     "conversation": "Conversation",
     "backToContacts": "Back to contacts",
     "messageFrom": "Message from {{name}}",
-    "messageFromMe": "My message"
+    "messageFromMe": "My message",
+    "voice": {
+      "recording": "Recording…",
+      "stop": "Stop recording",
+      "cancel": "Cancel recording",
+      "discard": "Discard voice message",
+      "play": "Play voice message",
+      "pause": "Pause voice message",
+      "send": "Send voice message",
+      "preview": "Voice message preview",
+      "uploading": "Sending…",
+      "uploadFailed": "Failed to send voice message",
+      "micDenied": "Microphone access denied",
+      "unsupported": "Voice recording is not supported in this browser",
+      "messageLabel": "Voice message"
+    }
+  },
+  "profile": {
+    "title": "Profile settings",
+    "openProfile": "Profile",
+    "avatar": {
+      "title": "Profile picture",
+      "change": "Change picture",
+      "uploading": "Uploading…",
+      "hint": "JPG, PNG, GIF or WEBP. Max 3 MB.",
+      "invalidType": "Please select an image file (JPG, PNG, GIF or WEBP)",
+      "tooLarge": "Image is too large (max 3 MB)",
+      "altFor": "{{name}}'s profile picture"
+    },
+    "details": {
+      "title": "Personal details",
+      "save": "Save changes"
+    },
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "submit": "Update password",
+      "hint": "At least 8 characters, including lower & upper case letters and a digit.",
+      "googleOnly": "Your account is signed in with Google, so there is no password to change."
+    },
+    "account": {
+      "title": "Account"
+    },
+    "messages": {
+      "saved": "Profile updated",
+      "saveFailed": "Failed to update profile",
+      "avatarUpdated": "Profile picture updated",
+      "avatarFailed": "Failed to upload profile picture",
+      "passwordUpdated": "Password updated",
+      "passwordFailed": "Failed to change password",
+      "passwordWeak": "Password must be at least 8 characters with lower & upper case letters and a digit",
+      "emailInvalid": "Please enter a valid email address",
+      "phoneInvalid": "Please enter a valid phone number",
+      "usernameShort": "Username must be at least 2 characters",
+      "logoutFailed": "Failed to log out"
+    }
   }
 }

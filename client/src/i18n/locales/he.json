@@ -98,6 +98,63 @@
     "conversation": "שיחה",
     "backToContacts": "חזרה לרשימת אנשי הקשר",
     "messageFrom": "הודעה מ-{{name}}",
-    "messageFromMe": "הודעה שלי"
+    "messageFromMe": "הודעה שלי",
+    "voice": {
+      "recording": "מקליט…",
+      "stop": "עצירת הקלטה",
+      "cancel": "ביטול הקלטה",
+      "discard": "מחיקת ההקלטה",
+      "play": "נגן הודעה קולית",
+      "pause": "השהה הודעה קולית",
+      "send": "שליחת הודעה קולית",
+      "preview": "תצוגה מקדימה של הודעה קולית",
+      "uploading": "שולח…",
+      "uploadFailed": "שליחת ההודעה הקולית נכשלה",
+      "micDenied": "הגישה למיקרופון נדחתה",
+      "unsupported": "הקלטת קול אינה נתמכת בדפדפן זה",
+      "messageLabel": "הודעה קולית"
+    }
+  },
+  "profile": {
+    "title": "הגדרות פרופיל",
+    "openProfile": "פרופיל",
+    "avatar": {
+      "title": "תמונת פרופיל",
+      "change": "שינוי תמונה",
+      "uploading": "מעלה…",
+      "hint": "JPG, PNG, GIF או WEBP. עד 3 מגה.",
+      "invalidType": "נא לבחור קובץ תמונה (JPG, PNG, GIF או WEBP)",
+      "tooLarge": "התמונה גדולה מדי (מקסימום 3 מגה)",
+      "altFor": "תמונת הפרופיל של {{name}}"
+    },
+    "details": {
+      "title": "פרטים אישיים",
+      "save": "שמירת שינויים"
+    },
+    "password": {
+      "title": "שינוי סיסמה",
+      "current": "סיסמה נוכחית",
+      "new": "סיסמה חדשה",
+      "confirm": "אימות סיסמה חדשה",
+      "submit": "עדכון סיסמה",
+      "hint": "לפחות 8 תווים, כולל אותיות גדולות וקטנות באנגלית וספרה.",
+      "googleOnly": "החשבון שלך מחובר דרך Google, לכן אין סיסמה לשינוי."
+    },
+    "account": {
+      "title": "חשבון"
+    },
+    "messages": {
+      "saved": "הפרופיל עודכן",
+      "saveFailed": "עדכון הפרופיל נכשל",
+      "avatarUpdated": "תמונת הפרופיל עודכנה",
+      "avatarFailed": "העלאת תמונת הפרופיל נכשלה",
+      "passwordUpdated": "הסיסמה עודכנה",
+      "passwordFailed": "שינוי הסיסמה נכשל",
+      "passwordWeak": "הסיסמה חייבת להכיל לפחות 8 תווים, אותיות גדולות וקטנות באנגלית וספרה",
+      "emailInvalid": "נא להזין כתובת דוא\"ל תקינה",
+      "phoneInvalid": "נא להזין מספר טלפון תקין",
+      "usernameShort": "שם המשתמש חייב להכיל לפחות 2 תווים",
+      "logoutFailed": "ההתנתקות נכשלה"
+    }
   }
 }

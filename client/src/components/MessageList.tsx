@@ -7,7 +7,15 @@ import { onNewMessage } from '../service/socket';
 import { useAsync } from '../hooks/useAsync';
 import { LoadingState, EmptyState, ErrorState } from './ui/States';
 
-type MessageVm = { id: string; text: string; sender: 'me' | 'other'; timestamp: string };
+type MessageKind = 'text' | 'image' | 'video' | 'audio' | 'file';
+type MessageVm = {
+  id: string;
+  text: string;
+  sender: 'me' | 'other';
+  timestamp: string;
+  type?: MessageKind;
+  media?: string;
+};
 
 const fetchMessages = async (myId: string, otherId: string): Promise<MessageVm[]> => {
   const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
@@ -21,6 +29,8 @@ const fetchMessages = async (myId: string, otherId: string): Promise<MessageVm[]
     text: m.content || '',
     sender: String(m.sender) === myId ? 'me' : 'other',
     timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    type: m.type as MessageKind | undefined,
+    media: m.media,
   }));
   return mapped.reverse();
 };
@@ -56,13 +66,15 @@ const MessageList = () => {
   useEffect(() => {
     if (!myId || !otherId) return;
     const handler = (payload: any) => {
-      const { senderId, receiverId, content, createdAt, _id } = payload || {};
+      const { senderId, receiverId, content, createdAt, _id, type, media } = payload || {};
       const relevant =
         (senderId === myId && receiverId === otherId) ||
         (senderId === otherId && receiverId === myId);
       if (!relevant) return;
+      const current = (items as MessageVm[] | null) || [];
+      if (current.some((m) => m.id === _id)) return;
       setData([
-        ...((items as MessageVm[] | null) || []),
+        ...current,
         {
           id: _id,
           text: content || '',
@@ -70,6 +82,8 @@ const MessageList = () => {
           timestamp: createdAt
             ? new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '',
+          type: type as MessageKind | undefined,
+          media,
         },
       ]);
     };

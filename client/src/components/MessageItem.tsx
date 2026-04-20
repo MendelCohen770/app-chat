@@ -1,24 +1,45 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import VoiceMessagePlayer from './VoiceMessagePlayer';
+
+type MessageKind = 'text' | 'image' | 'video' | 'audio' | 'file';
 
 type Message = {
   id: string;
   text: string;
   sender: 'me' | 'other';
   timestamp: string;
+  type?: MessageKind;
+  media?: string;
 };
 
 interface MessageItemProps {
   message: Message;
 }
 
+const resolveMediaUrl = (media?: string): string | undefined => {
+  if (!media) return undefined;
+  if (/^https?:\/\//i.test(media)) return media;
+  const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
+  return `${baseUrl}${media.startsWith('/') ? '' : '/'}${media}`;
+};
+
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const { t } = useTranslation();
   const isMine = message.sender === 'me';
+  const isAudio = message.type === 'audio' && !!message.media;
 
-  const ariaLabel = isMine
-    ? `${t('chat.messageFromMe')} ${message.text} ${message.timestamp}`
-    : `${t('chat.messageFrom', { name: '' })} ${message.text} ${message.timestamp}`;
+  const ariaLabel = (() => {
+    if (isAudio) {
+      const voiceLabel = t('chat.voice.messageLabel');
+      return isMine
+        ? `${t('chat.messageFromMe')} ${voiceLabel} ${message.timestamp}`
+        : `${t('chat.messageFrom', { name: '' })} ${voiceLabel} ${message.timestamp}`;
+    }
+    return isMine
+      ? `${t('chat.messageFromMe')} ${message.text} ${message.timestamp}`
+      : `${t('chat.messageFrom', { name: '' })} ${message.text} ${message.timestamp}`;
+  })();
 
   return (
     <div className={['w-full flex', isMine ? 'justify-end' : 'justify-start'].join(' ')}>
@@ -31,7 +52,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             : 'bg-slate-700 text-slate-50 rounded-bl-sm',
         ].join(' ')}
       >
-        <p className="whitespace-pre-wrap pe-12">{message.text}</p>
+        {isAudio ? (
+          <div className="pe-12">
+            <VoiceMessagePlayer src={resolveMediaUrl(message.media) || ''} isMine={isMine} />
+          </div>
+        ) : (
+          <p className="whitespace-pre-wrap pe-12">{message.text}</p>
+        )}
         <span
           className={[
             'absolute bottom-1 end-2 text-[10px] select-none',

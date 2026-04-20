@@ -5,6 +5,8 @@ import SendButton from './SendButton';
 import { BsEmojiSunglasses } from "react-icons/bs";
 import MediaUploader from './MediaUploader';
 import Recordings from './Recordings';
+import { useUser } from '../context/UserContext';
+import { useChat } from '../context/ChatContext';
 
 interface sendMessageProps {
   sendMessage: (message: string) => void;
@@ -14,13 +16,15 @@ interface sendMessageProps {
 const MessageInput : React.FC<sendMessageProps> = ({sendMessage}) => {
   const [message, setMessage] = useState<string>('');
   const [showPicker, setShowPicker] = useState(false);
+  const userCtx = useUser();
+  const chat = useChat();
 
   const handleEmojiClick = (emojiObject: any) => {
     setMessage((prev) => prev + emojiObject.emoji);
     setShowPicker(false);
     
   };
-  console.log(message);
+  // console.log(message);
   
   const handleMessageChange = (newMessage: string) => {
     setMessage(newMessage);
@@ -30,8 +34,18 @@ const MessageInput : React.FC<sendMessageProps> = ({sendMessage}) => {
 
   }
 
-  const handleSendMessage = () => {
-    sendMessage(message);
+  const handleSendMessage = async () => {
+    const myId = userCtx?.user?._id;
+    const otherId = chat?.selectedUser?._id;
+    if (!myId || !otherId || !message.trim()) return;
+    const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
+    const url = `${baseUrl}/message/sendMessage`;
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ sender: myId, receiver: otherId, type: 'text', content: message.trim() }),
+    }).catch(() => {});
     setMessage('');
   }
   return (

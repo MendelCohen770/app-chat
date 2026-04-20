@@ -1,23 +1,47 @@
 import io from "socket.io-client";
+import { IUser } from "../models/user";
 let socket: ReturnType<typeof io> | null = null;
-export const connectSocket = (userId: string) => {
+
+export const connectSocket = (user: IUser | null | undefined) => {
+    if (!user) {
+        console.warn('connectSocket called without a valid user. Skipping socket connection.');
+        return;
+    }
+
+    if (socket && socket.connected) {
+        return;
+    }
+
     socket = io('http://localhost:3000', {
         transports: ['websocket'],
-        transportOptions: {
-            polling: {
-                extraHeaders: {
-                    // Headers שאתה רוצה לשלוח כמו Authorization
-                },
-                withCredentials: true, // כאן המקום הנכון
-            },
-        },
+        auth: { userId: user._id },
     });
 
     socket.on('connect', () => {
         console.log('🔌 Socket connected');
-        socket?.emit('register', userId); // רישום המשתמש בשרת
+    });
+    socket.on('registered', (payload: { ok: boolean; userId: string }) => {
+        console.log('✅ Registered to user room', payload);
+    });
+    socket.on('connect_error', (err: Error) => {
+        console.error('Socket connect_error:', err.message);
+    });
+    socket.on('disconnect', (reason: string) => {
+        console.log('🔌 Socket disconnected:', reason);
     });
 };
 
+export const disconnectSocket = () => {
+    if (socket) {
+        socket.disconnect();
+        socket = null;
+    }
+};
 
 export const getSocket = () => socket;
+
+export const onNewMessage = (handler: (payload: any) => void) => {
+    if (!socket) return;
+    socket.off('newMessage');
+    socket.on('newMessage', handler);
+};

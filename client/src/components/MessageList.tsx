@@ -1,85 +1,68 @@
-import React from 'react'
+import { useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
+import { useChat } from '../context/ChatContext'
+import { useUser } from '../context/UserContext'
+import { onNewMessage } from '../service/socket'
 
-type Message = {
-  id: string;
-  text: string;
-  sender: "me" | "other";
-  timestamp: string;
+type MessageVm = { id: string; text: string; sender: "me" | "other"; timestamp: string }
+
+const fetchMessages = async (myId: string, otherId: string) => {
+  const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
+  const url = `${baseUrl}/message/getMessages?sender=${myId}&receiver=${otherId}`;
+  const res = await fetch(url, { credentials: 'include' });
+  const json = await res.json();
+  return (json?.data as any[] | undefined) || [];
 }
 
-const messages: Message[] = [
-  { id: "1", text: "Hey!", sender: "me", timestamp: "10:01" },
-  { id: "2", text: "Hi there! 👋", sender: "other", timestamp: "10:02" },
-  { id: "3", text: "How are you doing today?", sender: "me", timestamp: "10:03" },
-  {
-    id: "4",
-    text: "I'm doing great, thanks! Just working on a new project. It's taking a lot of time but it's fun.",
-    sender: "other",
-    timestamp: "10:05",
-  },
-  {
-    id: "5",
-    text: "That's awesome. Let me know if you need any help with it.",
-    sender: "me",
-    timestamp: "10:06",
-  },
-  {
-    id: "6",
-    text: "Sure thing! Actually, I'm stuck on one part. It's a bit tricky. Can I call you later?",
-    sender: "other",
-    timestamp: "10:07",
-  },
-  {
-    id: "7",
-    text: "Of course. I should be free after 2 PM.",
-    sender: "me",
-    timestamp: "10:08",
-  },
-  {
-    id: "8",
-    text: "Perfect! I'll send you a quick summary before the call so you can take a look.",
-    sender: "other",
-    timestamp: "10:09",
-  },
-  {
-    id: "9",
-    text: "Sounds good 👍",
-    sender: "me",
-    timestamp: "10:10",
-  },
-  {
-    id: "10",
-    text: "By the way, did you check out the new Telegram update? It has some cool features.",
-    sender: "other",
-    timestamp: "10:12",
-  },
-  {
-    id: "11",
-    text: "Not yet, but I've heard it's really good. Will take a look later today.",
-    sender: "me",
-    timestamp: "10:13",
-  },
-  {
-    id: "12",
-    text: "Okay, talk later!",
-    sender: "other",
-    timestamp: "10:14",
-  },
-  {
-    id: "13",
-    text: "Sure! Bye for now 👋",
-    sender: "me",
-    timestamp: "10:15",
-  },
-];
-
 const MessageList = () => {
-   
+  const chat = useChat();
+  const userCtx = useUser();
+  const [items, setItems] = useState<MessageVm[]>([]);
+
+  useEffect(() => {
+    const myId = userCtx?.user?._id;
+    const otherId = chat?.selectedUser?._id;
+    if (!myId || !otherId) { setItems([]); return; }
+    fetchMessages(myId, otherId).then((rows) => {
+      const mapped = rows.map((m: any) => ({
+        id: m._id,
+        text: m.content || '',
+        sender: String(m.sender) === myId ? 'me' : 'other',
+        timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      })) as MessageVm[];
+      setItems(mapped.reverse());
+    }).catch(() => setItems([]));
+  }, [chat?.selectedUser?._id, userCtx?.user?._id]);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [items.length]);
+
+  useEffect(() => {
+    const myId = userCtx?.user?._id;
+    const otherId = chat?.selectedUser?._id;
+    if (!myId || !otherId) return;
+    const handler = (payload: any) => {
+      const { senderId, receiverId, content, createdAt, _id } = payload || {};
+      const relevant = (senderId === myId && receiverId === otherId) || (senderId === otherId && receiverId === myId);
+      if (!relevant) return;
+      setItems(prev => ([...prev, {
+        id: _id,
+        text: content || '',
+        sender: senderId === myId ? 'me' : 'other',
+        timestamp: createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+      }]));
+    };
+    onNewMessage(handler);
+  }, [chat?.selectedUser?._id, userCtx?.user?._id]);
+
   return (
-    <div className='bg-zinc-300 flex-1 overflow-y-auto w-9/12 flex flex-col p-4 '>
-      {messages.map( message => (
-        <MessageItem message={message}/>
+    <div ref={containerRef} className='bg-zinc-300 flex-1 overflow-y-auto w-9/12 flex flex-col p-4 '>
+      {items.map(message => (
+        <MessageItem key={message.id} message={message}/>
       ))}
     </div>
   )

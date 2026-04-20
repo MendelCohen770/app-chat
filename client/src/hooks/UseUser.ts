@@ -5,7 +5,7 @@ const BASE_URL = 'http://localhost:3000/user'
 
 export const signup = async (user: ISignup): Promise<any> => {
     try{
-    const response = await axios.post(`${BASE_URL}/singUp`,user,{ withCredentials: true } );
+    const response = await axios.post(`${BASE_URL}/signUp`,user,{ withCredentials: true } );
     return response.data;
     }catch(e){
         console.error("Signup failed", e);

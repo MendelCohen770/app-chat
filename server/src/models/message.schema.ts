@@ -14,6 +14,8 @@ export interface Imessage extends Document{
     type: MessageType.text | MessageType.image | MessageType.video | MessageType.audio | MessageType.file,
     content?: string,
     media?: string,
+    createdAt?: Date,
+    updatedAt?: Date,
 }
 
 const MessageSchema = new Schema<Imessage>({

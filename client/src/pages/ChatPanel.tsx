@@ -1,16 +1,15 @@
-import React, { useState } from 'react'
-import TextInput from './TextInput'
-import MessageInput from './MessageInput';
-import MessageHeader from './MessageHeader';
-import MessageList from './MessageList';
+import React, { useEffect } from 'react'
+import MessageInput from '../components/MessageInput';
+import MessageHeader from '../components/MessageHeader';
+import MessageList from '../components/MessageList';
+import { onNewMessage } from '../service/socket';
 
 const ChatPanel = () => {
-  const [message, setMessage] = useState<string>('');
-  const [media, setMedia] = useState<File | null>(null);
-  const [emoji, setEmoji] = useState<string>('');
-  const [isTexting, setIsTexting] = useState(false);
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  console.log(message);
+  const [/* message */, setMessage] = React.useState<string>('');
+
+  useEffect(() => {
+    onNewMessage(() => {});
+  }, []);
   
   
   return (
@@ -23,7 +22,7 @@ const ChatPanel = () => {
         {/* כאן יהיה קומפוננטה של כל ההודעות שהיו עד כה בין שני המשתמשים */}
         <div className=' flex justify-center items-center' >
           {/* הודעות */}
-          <MessageList/>
+          <MessageList />
         </div>
       </div>
       <div className='mt-4'>

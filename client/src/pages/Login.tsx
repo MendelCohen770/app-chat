@@ -40,9 +40,9 @@ const LoginPage: React.FC = () => {
         if (!userContext) {
             throw new Error("useUser must be used within a UserProvider");
         }
-        const { setUser } = userContext;
+        const { saveUser } = userContext;
         if (res.data && typeof res.data === 'object' && '_id' in res.data) {
-            setUser(res.data as IUser);
+            saveUser(res.data as IUser);
         } else {
             console.error('Invalid user data:', res.data);
         }

@@ -96,6 +96,17 @@ const updateUser = async (req : Request, res : Response) => {
     
 }
 
+const getAllUsers = async (req : Request, res : Response) => {
+    try{
+        const users = await User.find().select('-password').limit(100);
+        const response = genericResponse(true, 'Users retrieved successfully', null, null, users);
+        res.status(200).json(response);
+    }catch(err){
+        const response = genericResponse(false, 'Error retrieving users', null, err instanceof Error? err.message : 'Unknown error', null);
+        res.status(500).json(response);
+    }
+}
+
 const searchUser = async (req : Request, res : Response) => {
     const {username} = req.query;
 
@@ -365,4 +376,4 @@ const verifyOTP = async (req : Request, res : Response) => {
     };
 };
 
-export {signUp, updateUser, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP};
+export {signUp, updateUser, getAllUsers, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP};

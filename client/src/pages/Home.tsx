@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react'
-import UserPanel from '../components/UserPanel'
-import ChatPanel from '../components/ChatPanel'
+import UserPanel from './UserPanel'
+import ChatPanel from './ChatPanel'
 import { useUser } from '../context/UserContext';
 import { IUser } from '../models/user';
-import { connectSocket  } from '../service/socket';
+import { connectSocket, disconnectSocket  } from '../service/socket';
 
 
 
@@ -21,16 +21,6 @@ interface User {
 }
 
 export default function Home() {
- 
-
-  useEffect(() => {
-    console.log("-------------------");
-    connectSocket(user._id); // 
-   
-    return () => {
-     
-    };
-  }, []);
   const users: User[] = Array.from({ length: 30 }, (_, index) => ({
     _id: `user${index + 1}`,
     username: `user${index + 1}`,
@@ -41,9 +31,17 @@ export default function Home() {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }));
-const userContext = useUser();
-  const user = userContext?.user as IUser;
-  console.log(user);
+  const userContext = useUser();
+  const user = userContext?.user as IUser | null;
+
+  useEffect(() => {
+    if (user) {
+      connectSocket(user);
+    }
+    return () => {
+      disconnectSocket();
+    };
+  }, [user]);
   
  
   return (

@@ -1,4 +1,5 @@
 import Message from "../models/message.schema";
+import { getIO } from "../sockets/socket";
 import { Request, Response } from "express";
 import { genericResponse} from '../utils/helper';
 
@@ -18,6 +19,21 @@ const sendMessage = async (req: Request, res: Response) => {
             media
         });
         await message.save();
+        try {
+            const io = getIO();
+            const payload = {
+                _id: message._id,
+                senderId: String(message.sender),
+                receiverId: String(message.receiver),
+                type: message.type,
+                content: message.content,
+                media: message.media,
+                createdAt: message.createdAt,
+            };
+            io.to(String(message.sender)).to(String(message.receiver)).emit('newMessage', payload);
+        } catch (err) {
+            // If io not initialized, just skip emitting
+        }
         const response = genericResponse(true, 'Message sent successfully', null, null, message);
         res.status(200).json(response);
 

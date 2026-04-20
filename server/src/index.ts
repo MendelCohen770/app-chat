@@ -8,27 +8,30 @@ import cookieParser from 'cookie-parser';
 import messageRoute from './routes/message.route';
 import { Server } from 'socket.io';
 import http from 'http';
-import setUpSocket from './sockets/socket';
+import setUpSocket, { setIO } from './sockets/socket';
 
 
 
 const app = express();
 dotenv.config();
 const port = process.env.PORT || 3001;
+const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 
 DBconnect();
 const server = http.createServer(app);
 app.use(cors({
-  origin: ['http://localhost:5173','http://localhost:5173/home'],
-  credentials: true, 
+  origin: clientOrigin,
+  credentials: true,
 }))
 const io = new Server(server,{
   cors: {
-    origin: 'http://localhost:5173',
+    origin: clientOrigin,
     methods: ["GET", "POST"],
+    credentials: true,
   }
 });
 setUpSocket(io);
+setIO(io);
 app.use(cookieParser());
 app.use(express.json());
 app.use('/user', userRoute);

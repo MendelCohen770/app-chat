@@ -3,6 +3,7 @@ import { authMiddleware, checkRole } from '../middlewares/middel'
 import {
     signUp,
     updateUser,
+    getAllUsers,
     searchUser,
     deleteUser,
     login,
@@ -24,6 +25,7 @@ userRoute.put('/changePassword', changePassword);
 userRoute.post('/updateUser', authMiddleware, updateUser);
 userRoute.post('/logout', authMiddleware, logout);
 
+userRoute.get('/getAllUsers', authMiddleware, getAllUsers);
 userRoute.get('/searchUser', authMiddleware, searchUser);
 userRoute.get('/getUserDetails', authMiddleware, getUserDetails);
 

@@ -1,38 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IoClose } from "react-icons/io5";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { useChat } from "../context/ChatContext";
 import { IUser } from "../models/user";
 
-
-
-
-
-const users: IUser[] = Array.from({ length: 30 }, (_, index) => ({
-  _id: `user${index + 1}`,
-  username: `user${index + 1}`,
-  email: `user${index + 1}@gmail.com`,
-  phone: `05412345${index + 10}`,
-  profileIcon: '',
-  role: 1,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-}));
-
 const UserPanel = () => {
   const [searchInput, setSearchInput] = useState('');
-  const [filteredContacts, setFilteredContacts] = useState(users);
+  const [users, setUsers] = useState<IUser[]>([]);
+  const [filteredContacts, setFilteredContacts] = useState<IUser[]>([]);
 
   const chatContext = useChat();
   if (!chatContext) {
     throw new Error("useChat must be used within a ChatProvider");
   }
-  const { setSelectedUser} = chatContext;
-  
-  
-  
-  
-  console.log(filteredContacts);
+  const { setSelectedUser, selectedUser } = chatContext;
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
+      try {
+        const res = await fetch(`${baseUrl}/user/getAllUsers`, { credentials: 'include' });
+        const json = await res.json();
+        if (json?.isSuccessful && json?.data) {
+          setUsers(json.data as IUser[]);
+          setFilteredContacts(json.data as IUser[]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+      }
+    };
+    fetchUsers();
+  }, []);
+
   const handelInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     setSearchInput(e.target.value);
@@ -72,8 +71,16 @@ const UserPanel = () => {
         </div>
       </div>
       <div className="p-1 max-h-[90%] overflow-y-auto">
-      {filteredContacts.map((user) => (
-        <div key={user._id} onClick={() => setSelectedUser(user)} className="flex items-center p-3 rounded-lg hover:bg-gray-800 cursor-pointer">
+      {filteredContacts.map((user) => {
+        const isSelected = selectedUser?._id === user._id;
+        return (
+        <div 
+          key={user._id} 
+          onClick={() => setSelectedUser(user)} 
+          className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
+            isSelected ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-gray-800'
+          }`}
+        >
         {/* תמונת פרופיל או אייקון */}
         <img 
           src={user.profileIcon || 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg' || '../../public/simple-user-default-icon-free.png'} 
@@ -81,11 +88,12 @@ const UserPanel = () => {
           className="w-12 h-12 rounded-full mr-4 text-gray-500"
         />
         <div className="flex flex-col">
-          <span className="text-lg font-semibold text-gray-100">{user.username}</span>
-          <span className="text-sm text-gray-300">Online</span>
+          <span className={`text-lg font-semibold ${isSelected ? 'text-white' : 'text-gray-100'}`}>{user.username}</span>
+          <span className={`text-sm ${isSelected ? 'text-gray-200' : 'text-gray-300'}`}>Online</span>
         </div>
       </div>
-      ))}
+        );
+      })}
     </div>
     </div>
   );

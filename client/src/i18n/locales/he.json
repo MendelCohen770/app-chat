@@ -1,0 +1,103 @@
+{
+  "common": {
+    "appName": "צ'אט",
+    "loading": "טוען…",
+    "retry": "נסה שוב",
+    "close": "סגירה",
+    "back": "חזרה",
+    "online": "מחובר",
+    "unknown": "לא ידוע",
+    "error": "אירעה שגיאה",
+    "empty": "אין נתונים להצגה",
+    "search": "חיפוש",
+    "send": "שליחה",
+    "cancel": "ביטול",
+    "language": "שפה",
+    "languageNames": {
+      "he": "עברית",
+      "en": "English"
+    }
+  },
+  "auth": {
+    "login": "התחברות",
+    "signup": "הרשמה",
+    "logout": "התנתקות",
+    "mode": {
+      "password": "סיסמה",
+      "otp": "קוד חד‑פעמי"
+    },
+    "fields": {
+      "username": "שם משתמש",
+      "usernamePlaceholder": "הזיני שם משתמש",
+      "password": "סיסמה",
+      "passwordPlaceholder": "הזיני סיסמה",
+      "confirmPassword": "אימות סיסמה",
+      "confirmPasswordPlaceholder": "אימות סיסמה",
+      "email": "דוא\"ל",
+      "emailPlaceholder": "הזיני כתובת דוא\"ל",
+      "phone": "טלפון",
+      "phonePlaceholder": "הזיני מספר טלפון",
+      "otpCode": "קוד אימות",
+      "otpCodePlaceholder": "הזיני את הקוד שנשלח אליך"
+    },
+    "actions": {
+      "submitLogin": "התחברות",
+      "submitSignup": "הרשמה",
+      "sendOtp": "שליחת קוד",
+      "sending": "שולח…",
+      "verifyOtp": "אימות קוד",
+      "verifying": "מאמת…",
+      "resendOtp": "שליחה מחדש",
+      "changeEmail": "שינוי דוא\"ל",
+      "showPassword": "הצג סיסמה",
+      "hidePassword": "הסתר סיסמה"
+    },
+    "links": {
+      "haveAccount": "כבר יש לך חשבון?",
+      "noAccount": "אין לך חשבון?"
+    },
+    "messages": {
+      "fillAllFields": "נא למלא את כל השדות",
+      "passwordsDoNotMatch": "הסיסמאות אינן תואמות",
+      "enterEmail": "נא להזין כתובת דוא\"ל",
+      "enterOtp": "נא להזין את קוד האימות",
+      "otpSent": "קוד אימות נשלח אליך",
+      "otpResent": "קוד אימות נשלח שוב",
+      "otpFailed": "שליחת הקוד נכשלה",
+      "otpInvalid": "קוד שגוי",
+      "loginSuccess": "התחברת בהצלחה",
+      "signupSuccess": "נרשמת בהצלחה",
+      "googleUnavailable": "התחברות עם גוגל אינה מוגדרת. יש להגדיר VITE_GOOGLE_CLIENT_ID בקובץ client/.env",
+      "googleFailed": "התחברות עם גוגל נכשלה",
+      "genericFailure": "הפעולה נכשלה, נסי שוב"
+    }
+  },
+  "chat": {
+    "search": "חיפוש אנשי קשר",
+    "clearSearch": "ניקוי חיפוש",
+    "noContacts": "אין אנשי קשר זמינים",
+    "noContactsMatch": "לא נמצאו אנשי קשר תואמים",
+    "loadingContacts": "טוען אנשי קשר…",
+    "contactsError": "טעינת אנשי הקשר נכשלה",
+    "selectContact": "בחרי איש קשר כדי להתחיל שיחה",
+    "noMessages": "אין הודעות בשיחה הזאת — שלחי את ההודעה הראשונה",
+    "loadingMessages": "טוען הודעות…",
+    "messagesError": "טעינת ההודעות נכשלה",
+    "messageInputPlaceholder": "הודעה",
+    "sendMessage": "שליחת הודעה",
+    "recordVoice": "הקלטת הודעה קולית",
+    "attach": "צירוף קובץ",
+    "attachImage": "תמונה",
+    "attachFile": "קובץ",
+    "attachVideo": "סרטון",
+    "openEmoji": "פתיחת אימוג'ים",
+    "closeEmoji": "סגירת אימוג'ים",
+    "call": "שיחה",
+    "more": "אפשרויות נוספות",
+    "contactList": "רשימת אנשי קשר",
+    "conversation": "שיחה",
+    "backToContacts": "חזרה לרשימת אנשי הקשר",
+    "messageFrom": "הודעה מ-{{name}}",
+    "messageFromMe": "הודעה שלי"
+  }
+}

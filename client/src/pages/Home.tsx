@@ -1,64 +1,58 @@
-import React, { useEffect } from 'react'
-import UserPanel from './UserPanel'
-import ChatPanel from './ChatPanel'
+import { useEffect, useState } from 'react';
+import UserPanel from './UserPanel';
+import ChatPanel from './ChatPanel';
 import { useUser } from '../context/UserContext';
+import { useChat } from '../context/ChatContext';
 import { IUser } from '../models/user';
-import { connectSocket, disconnectSocket  } from '../service/socket';
-
-
-
-
-
-interface User {
-  _id: string;
-  username: string;
-  email: string;
-  phone: string;
-  profileIcon: string; // כאן תמונה או אייקון
-  role: number;
-  createdAt: string;
-  updatedAt: string;
-}
+import { connectSocket, disconnectSocket } from '../service/socket';
 
 export default function Home() {
-  const users: User[] = Array.from({ length: 30 }, (_, index) => ({
-    _id: `user${index + 1}`,
-    username: `user${index + 1}`,
-    email: `user${index + 1}@gmail.com`,
-    phone: `05412345${index + 10}`,
-    profileIcon: '',
-    role: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }));
   const userContext = useUser();
+  const chatContext = useChat();
   const user = userContext?.user as IUser | null;
 
+  // Mobile two-view pattern: show either the contact list or the conversation.
+  // Desktop (>= md) always shows both side by side.
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+
   useEffect(() => {
-    if (user) {
-      connectSocket(user);
-    }
-    return () => {
-      disconnectSocket();
-    };
+    if (chatContext?.selectedUser) setMobileView('chat');
+  }, [chatContext?.selectedUser]);
+
+  useEffect(() => {
+    if (user) connectSocket(user);
+    return () => disconnectSocket();
   }, [user]);
-  
- 
+
+  const backToList = () => setMobileView('list');
+
   return (
-    <div className="bg-slate-900 h-svh text-gray-500 flex justify-center items-center flex-col p-4">
-      <div className="border-slate-700 border-2 w-full h-full flex relative rounded-xl">
+    <div className="bg-slate-900 h-svh text-slate-300 flex flex-col p-2 sm:p-4">
+      <div className="border-slate-700 border w-full h-full flex flex-col md:flex-row relative rounded-xl overflow-hidden">
+        {/* Contact list / side panel */}
+        <aside
+          aria-label="Contacts"
+          className={[
+            'md:w-1/3 lg:w-1/4 md:border-e md:border-slate-700 h-full min-h-0',
+            mobileView === 'list' ? 'flex' : 'hidden',
+            'md:flex',
+          ].join(' ')}
+        >
+          <UserPanel />
+        </aside>
 
-        <div className="absolute top-0 bottom-0 left-1/4 w-0.5 bg-slate-700"></div>
-
-        <div className="w-1/4 flex justify-center items-center p-2">
-          <UserPanel/>
-        </div>
-
-        <div className="w-3/4 flex justify-center items-center p-4">
-          <ChatPanel/>
-        </div>
-        
+        {/* Conversation panel */}
+        <section
+          aria-label="Conversation"
+          className={[
+            'md:w-2/3 lg:w-3/4 h-full min-h-0',
+            mobileView === 'chat' ? 'flex' : 'hidden',
+            'md:flex',
+          ].join(' ')}
+        >
+          <ChatPanel onBackToList={backToList} />
+        </section>
       </div>
     </div>
-  )
+  );
 }

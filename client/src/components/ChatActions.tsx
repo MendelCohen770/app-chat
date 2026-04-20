@@ -1,19 +1,26 @@
-import React from 'react'
-import { GoSearch } from "react-icons/go";
-import { IoCallOutline } from "react-icons/io5";
-import { IoMdMore } from "react-icons/io";
+import { useTranslation } from 'react-i18next';
+import { GoSearch } from 'react-icons/go';
+import { IoCallOutline } from 'react-icons/io5';
+import { IoMdMore } from 'react-icons/io';
 
+const iconBtn =
+  'inline-flex items-center justify-center h-10 w-10 rounded-md text-slate-300 hover:bg-slate-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400';
 
-// זה קומפוננטה שנמצאת בצד ימין של המסך כדי לשלוט בכל הפעולות שיש בשיחה
-// לדוגמא להתקשר או לחפש.
 const ChatActions = () => {
+  const { t } = useTranslation();
   return (
-    <div className='text-white flex items-center justify-around w-1/5'>
-      <GoSearch size={20} />
-      <IoCallOutline size={20} />
-      <IoMdMore size={30} />
+    <div className="flex items-center">
+      <button type="button" aria-label={t('common.search')} className={iconBtn}>
+        <GoSearch size={18} />
+      </button>
+      <button type="button" aria-label={t('chat.call')} className={iconBtn}>
+        <IoCallOutline size={20} />
+      </button>
+      <button type="button" aria-label={t('chat.more')} className={iconBtn}>
+        <IoMdMore size={22} />
+      </button>
     </div>
-  )
-}
+  );
+};
 
-export default ChatActions
+export default ChatActions;

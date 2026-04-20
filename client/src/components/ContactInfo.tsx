@@ -1,31 +1,28 @@
-import React, { useState } from "react";
-import { useChat  } from "../context/ChatContext";
+import { useTranslation } from 'react-i18next';
+import { useChat } from '../context/ChatContext';
+
+const DEFAULT_AVATAR = 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg';
 
 const ContactInfo = () => {
+  const { t } = useTranslation();
   const chatContext = useChat();
-
   const selectedUser = chatContext?.selectedUser;
 
-
   return (
-
-      <div onClick={() => console.log(selectedUser)} className="flex items-center p-3 h-full hover:bg-gray-800 cursor-pointer w-4/5">
-        {/* תמונת פרופיל או אייקון */}
-        <img
-          src={
-            selectedUser?.profileIcon || "https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg" ||
-            "../../public/simple-user-default-icon-free.png"
-          }
-          alt="profile"
-          className="w-12 h-12 rounded-full mr-4 text-gray-500"
-        />
-        <div className="flex flex-col">
-          <span className="text-lg font-semibold text-gray-100">
-            {selectedUser?.username || "Unknown User"}
-          </span>
-          <span className="text-sm text-gray-300">Online</span>
-        </div>
+    <div className="flex items-center p-2 h-full cursor-pointer flex-1 min-w-0">
+      <img
+        src={selectedUser?.profileIcon || DEFAULT_AVATAR}
+        alt=""
+        aria-hidden="true"
+        className="w-10 h-10 rounded-full me-3 object-cover bg-slate-700"
+      />
+      <div className="flex flex-col min-w-0">
+        <span className="text-base font-semibold text-slate-100 truncate">
+          {selectedUser?.username || t('common.unknown')}
+        </span>
+        <span className="text-xs text-slate-400 truncate">{t('common.online')}</span>
       </div>
+    </div>
   );
 };
 

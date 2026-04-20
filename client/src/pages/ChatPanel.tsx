@@ -1,38 +1,39 @@
-import React, { useEffect } from 'react'
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MessageInput from '../components/MessageInput';
 import MessageHeader from '../components/MessageHeader';
 import MessageList from '../components/MessageList';
-import { onNewMessage } from '../service/socket';
+import { useChat } from '../context/ChatContext';
+import { EmptyState } from '../components/ui/States';
 
-const ChatPanel = () => {
-  const [/* message */, setMessage] = React.useState<string>('');
-
-  useEffect(() => {
-    onNewMessage(() => {});
-  }, []);
-  
-  
-  return (
-    <div className='bg-gray-900 w-full h-full flex flex-col select-none '>
-      <div className='mb-4'>
-        {/* כאן יהיה קומפוננטה של הפרופיל של אותו איש קשר שהמשתמש מדבר איתו */}
-        <MessageHeader/>
-      </div>
-      <div className='bg-gray-800 h-96 overflow-y-auto flex-1'>
-        {/* כאן יהיה קומפוננטה של כל ההודעות שהיו עד כה בין שני המשתמשים */}
-        <div className=' flex justify-center items-center' >
-          {/* הודעות */}
-          <MessageList />
-        </div>
-      </div>
-      <div className='mt-4'>
-    {/* כאן יהיה קומפוננטה של ה chat עצמו עם המקלדת וההודעות. */}
-    <MessageInput 
-    sendMessage={setMessage}
-    />
-      </div>
-    </div>
-  )
+interface ChatPanelProps {
+  onBackToList?: () => void;
 }
 
-export default ChatPanel
+const ChatPanel: React.FC<ChatPanelProps> = ({ onBackToList }) => {
+  const { t } = useTranslation();
+  const chat = useChat();
+  const [/* message */, setMessage] = useState<string>('');
+
+  if (!chat?.selectedUser) {
+    return (
+      <div className="bg-slate-900 w-full h-full flex items-center justify-center">
+        <EmptyState title={t('chat.selectContact')} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-slate-900 w-full h-full min-h-0 flex flex-col select-none">
+      <MessageHeader onBackToList={onBackToList} />
+      <div className="flex-1 min-h-0 bg-slate-800">
+        <MessageList />
+      </div>
+      <div className="border-t border-slate-800 bg-slate-900 p-2">
+        <MessageInput sendMessage={setMessage} />
+      </div>
+    </div>
+  );
+};
+
+export default ChatPanel;

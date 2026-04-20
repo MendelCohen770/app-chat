@@ -24,6 +24,52 @@ export const login = async (username: string, password: string): Promise<any> =>
     }
 };
 
+export const requestOtp = async (email: string): Promise<any> => {
+    try {
+        const response = await axios.post(
+            `${BASE_URL}/otpService`,
+            { email },
+            { withCredentials: true }
+        );
+        return response.data;
+    } catch (e: any) {
+        console.log("Request OTP failed", e);
+        if (e?.response?.data) {
+            return e.response.data;
+        }
+        return {
+            isSuccessful: false,
+            displayMessage: 'Failed to send OTP',
+            description: null,
+            exception: e?.message || 'Unknown error',
+            data: null,
+        };
+    }
+};
+
+export const verifyOtp = async (email: string, otp: string): Promise<any> => {
+    try {
+        const response = await axios.post(
+            `${BASE_URL}/verifyOTP`,
+            { email, otp },
+            { withCredentials: true }
+        );
+        return response.data;
+    } catch (e: any) {
+        console.log("Verify OTP failed", e);
+        if (e?.response?.data) {
+            return e.response.data;
+        }
+        return {
+            isSuccessful: false,
+            displayMessage: 'Failed to verify OTP',
+            description: null,
+            exception: e?.message || 'Unknown error',
+            data: null,
+        };
+    }
+};
+
 export const googleLogin = async (credential: string): Promise<any> => {
     try{
         const response = await axios.post(

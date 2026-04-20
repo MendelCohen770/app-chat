@@ -1,36 +1,63 @@
-/* עיצוב כללי של ה-Scrollbar */
-::-webkit-scrollbar {
-    width: 8px; /* רוחב */
-  }
-  
-  /* עיצוב ה"מסילה" של ה-Scrollbar */
-  ::-webkit-scrollbar-track {
-    background: #1e293b; /* צבע כהה שמתאים ל-slate-900 */
-    border-radius: 10px;
-  }
-  
-  /* עיצוב ה"ידית" של ה-Scrollbar */
-  ::-webkit-scrollbar-thumb {
-    background: #64748b; /* צבע אפור-כחול */
-    border-radius: 10px;
-    border: 2px solid #1e293b; /* גבול כהה כדי לתת עומק */
-  }
-  
-  /* עיצוב ה"ידית" כשמעבירים מעליה את העכבר */
-  ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8; /* צבע יותר בהיר */
-  }
-  
-/* החלק של החצים למעלה ולמטה */
-::-webkit-scrollbar-button {
-    background: #64748b; /* צבע כמו הידית */
-    height: 12px; /* גודל החץ */
-    border-radius: 5px;
-  }
-  
-  /* חצים בלחיצה */
-  ::-webkit-scrollbar-button:hover {
-    background: #94a3b8;
-  }
+/* Global UX niceties --------------------------------------------------- */
 
-  
+/* Better default focus ring for keyboard users (mouse users still don't see it). */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+:focus-visible {
+  outline: none;
+}
+
+/* Respect user motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Remove the default blue tap highlight on iOS/Android. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scrollbar (WebKit) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 10px;
+  border: 2px solid #1e293b;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #64748b #1e293b;
+}
+
+/* Screen-reader only helper (complements Tailwind's sr-only in case it's missing). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

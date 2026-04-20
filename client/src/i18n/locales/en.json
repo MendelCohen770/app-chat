@@ -1,0 +1,103 @@
+{
+  "common": {
+    "appName": "Chat",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "close": "Close",
+    "back": "Back",
+    "online": "Online",
+    "unknown": "Unknown",
+    "error": "Something went wrong",
+    "empty": "Nothing to show",
+    "search": "Search",
+    "send": "Send",
+    "cancel": "Cancel",
+    "language": "Language",
+    "languageNames": {
+      "he": "עברית",
+      "en": "English"
+    }
+  },
+  "auth": {
+    "login": "Login",
+    "signup": "Sign up",
+    "logout": "Logout",
+    "mode": {
+      "password": "Password",
+      "otp": "OTP"
+    },
+    "fields": {
+      "username": "Username",
+      "usernamePlaceholder": "Enter your username",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "Confirm your password",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "phone": "Phone",
+      "phonePlaceholder": "Enter your phone",
+      "otpCode": "OTP code",
+      "otpCodePlaceholder": "Enter the code from your email"
+    },
+    "actions": {
+      "submitLogin": "Login",
+      "submitSignup": "Sign up",
+      "sendOtp": "Send code",
+      "sending": "Sending…",
+      "verifyOtp": "Verify code",
+      "verifying": "Verifying…",
+      "resendOtp": "Resend code",
+      "changeEmail": "Change email",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "links": {
+      "haveAccount": "Already have an account?",
+      "noAccount": "Don't have an account?"
+    },
+    "messages": {
+      "fillAllFields": "Please fill in all fields",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "enterEmail": "Please enter your email",
+      "enterOtp": "Please enter the OTP code",
+      "otpSent": "OTP sent to your email",
+      "otpResent": "OTP resent to your email",
+      "otpFailed": "Failed to send OTP",
+      "otpInvalid": "Invalid OTP",
+      "loginSuccess": "Logged in successfully",
+      "signupSuccess": "Signed up successfully",
+      "googleUnavailable": "Google login is not configured. Set VITE_GOOGLE_CLIENT_ID in client/.env",
+      "googleFailed": "Google login failed",
+      "genericFailure": "Something went wrong, please try again"
+    }
+  },
+  "chat": {
+    "search": "Search contacts",
+    "clearSearch": "Clear search",
+    "noContacts": "No contacts available",
+    "noContactsMatch": "No contacts match your search",
+    "loadingContacts": "Loading contacts…",
+    "contactsError": "Failed to load contacts",
+    "selectContact": "Select a contact to start chatting",
+    "noMessages": "No messages yet — send the first one",
+    "loadingMessages": "Loading messages…",
+    "messagesError": "Failed to load messages",
+    "messageInputPlaceholder": "Message",
+    "sendMessage": "Send message",
+    "recordVoice": "Record voice message",
+    "attach": "Attach",
+    "attachImage": "Image",
+    "attachFile": "File",
+    "attachVideo": "Video",
+    "openEmoji": "Open emoji picker",
+    "closeEmoji": "Close emoji picker",
+    "call": "Call",
+    "more": "More options",
+    "contactList": "Contact list",
+    "conversation": "Conversation",
+    "backToContacts": "Back to contacts",
+    "messageFrom": "Message from {{name}}",
+    "messageFromMe": "My message"
+  }
+}

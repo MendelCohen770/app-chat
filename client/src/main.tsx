@@ -4,8 +4,8 @@ import App from "./App.tsx";
 import "./index.css";
 import "./i18n";
 import DirectionProvider from "./i18n/DirectionProvider";
-import { ChatProvider } from "./context/ChatContext.tsx";
-import { UserProvider } from "./context/UserContext.tsx";
+import { ChatProvider } from "./context/ChatProvider";
+import { UserProvider } from "./context/UserProvider";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

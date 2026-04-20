@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken'
 import { genericResponse } from '../utils/helper';
+import { Role } from '../models/user.schema';
 
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
@@ -22,11 +23,11 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 
 };
 
-export const checkRole = (roles: ('user' | 'admin')[]) => {
+export const checkRole = (roles: Role[]) => {
     return (req: Request, res: Response, next: NextFunction): void => {
         const role = req.user?.role;
 
-        if (!role || !roles.includes(role)) {
+        if (role === undefined || role === null || !roles.includes(role)) {
             const response = genericResponse(false, 'Forbidden', null, 'You do not have the required role', null);
             res.status(403).json(response);
             return;

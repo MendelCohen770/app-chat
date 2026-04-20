@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import UserPanel from './UserPanel';
 import ChatPanel from './ChatPanel';
-import { useUser } from '../context/UserContext';
-import { useChat } from '../context/ChatContext';
+import { useUser } from '../context/useUser';
+import { useChat } from '../context/useChat';
 import { IUser } from '../models/user';
 import { connectSocket, disconnectSocket } from '../service/socket';
 

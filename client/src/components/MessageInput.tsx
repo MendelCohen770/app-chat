@@ -6,8 +6,8 @@ import toast from 'react-hot-toast';
 import SendButton from './SendButton';
 import MediaUploader from './MediaUploader';
 import Recordings from './Recordings';
-import { useUser } from '../context/UserContext';
-import { useChat } from '../context/ChatContext';
+import { useUser } from '../context/useUser';
+import { useChat } from '../context/useChat';
 
 interface sendMessageProps {
   sendMessage: (message: string) => void;

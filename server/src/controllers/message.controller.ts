@@ -4,15 +4,22 @@ import { Request, Response } from "express";
 import { genericResponse} from '../utils/helper';
 
 const sendMessage = async (req: Request, res: Response) => {
-    const { sender, receiver, type, content, media } = req.body;
-    if( !sender || !receiver || !type ){
+    const authUserId = req.user?.id;
+    if (!authUserId) {
+        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
+        res.status(401).json(response);
+        return;
+    }
+
+    const { receiver, type, content, media } = req.body;
+    if( !receiver || !type ){
         const response =  genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
         res.status(400).json(response);
         return;
     }
     try{
         const message = new Message({
-            sender,
+            sender: authUserId,
             receiver,
             type,
             content,
@@ -45,12 +52,26 @@ const sendMessage = async (req: Request, res: Response) => {
 }
 
 const getMessages = async (req: Request, res: Response) => {
-    const { sender, receiver} = req.query;
+    const authUserId = req.user?.id;
+    if (!authUserId) {
+        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
+        res.status(401).json(response);
+        return;
+    }
+
+    const { sender, receiver } = req.query;
     if( !sender || !receiver ){
         const response =  genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
         res.status(400).json(response);
         return;
     }
+
+    if (String(sender) !== String(authUserId) && String(receiver) !== String(authUserId)) {
+        const response = genericResponse(false, 'Forbidden', null, 'You are not a participant of this conversation', null);
+        res.status(403).json(response);
+        return;
+    }
+
     try{
         const messages = await Message.find({
             $or: [

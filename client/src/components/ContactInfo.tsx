@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useChat } from '../context/ChatContext';
+import { useChat } from '../context/useChat';
 
 const DEFAULT_AVATAR = 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg';
 

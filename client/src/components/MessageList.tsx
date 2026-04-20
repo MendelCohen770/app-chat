@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import MessageItem from './MessageItem';
-import { useChat } from '../context/ChatContext';
-import { useUser } from '../context/UserContext';
+import { useChat } from '../context/useChat';
+import { useUser } from '../context/useUser';
 import { onNewMessage } from '../service/socket';
 import { useAsync } from '../hooks/useAsync';
 import { LoadingState, EmptyState, ErrorState } from './ui/States';

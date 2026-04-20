@@ -2,6 +2,8 @@ import io from "socket.io-client";
 import { IUser } from "../models/user";
 let socket: ReturnType<typeof io> | null = null;
 
+const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
 export const connectSocket = (user: IUser | null | undefined) => {
     if (!user) {
         console.warn('connectSocket called without a valid user. Skipping socket connection.');
@@ -12,7 +14,7 @@ export const connectSocket = (user: IUser | null | undefined) => {
         return;
     }
 
-    socket = io('http://localhost:3000', {
+    socket = io(SOCKET_URL, {
         transports: ['websocket'],
         auth: { userId: user._id },
     });

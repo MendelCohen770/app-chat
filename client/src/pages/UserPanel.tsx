@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { IoClose } from 'react-icons/io5';
 import { RxHamburgerMenu } from 'react-icons/rx';
 import { useTranslation } from 'react-i18next';
-import { useChat } from '../context/ChatContext';
+import { useChat } from '../context/useChat';
 import { IUser } from '../models/user';
 import { useAsync } from '../hooks/useAsync';
 import { LoadingState, EmptyState, ErrorState } from '../components/ui/States';

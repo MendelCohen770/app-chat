@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import MessageInput from '../components/MessageInput';
 import MessageHeader from '../components/MessageHeader';
 import MessageList from '../components/MessageList';
-import { useChat } from '../context/ChatContext';
+import { useChat } from '../context/useChat';
 import { EmptyState } from '../components/ui/States';
 
 interface ChatPanelProps {

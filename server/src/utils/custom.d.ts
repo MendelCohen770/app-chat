@@ -6,9 +6,8 @@ declare namespace Express {
   }
   
   interface JwtPayload {
-    _id: string;
-    email: string;
-    role: 'user' | 'admin';
+    id: string;
+    role: number;
     iat?: number;
     exp?: number;
   }

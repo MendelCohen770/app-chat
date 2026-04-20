@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { login, googleLogin, requestOtp, verifyOtp } from '../hooks/UseUser';
 import { IResponse } from '../models/response';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
+import { useUser } from '../context/useUser';
 import { IUser } from '../models/user';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';

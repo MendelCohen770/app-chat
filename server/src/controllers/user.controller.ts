@@ -161,7 +161,7 @@ const deleteUser = async (req : Request, res : Response) => {
 
 const deleteSelfAccount = async (req : Request, res : Response) => {
     const {password} = req.body;
-    const userId = req.user?._id;
+    const userId = req.user?.id;
     if(!password){
         const response = genericResponse(false, 'Please provide your password', null, 'Password field is missing', null);
         res.status(400).json(response);
@@ -203,7 +203,7 @@ const deleteSelfAccount = async (req : Request, res : Response) => {
 
 const changePassword = async (req : Request, res : Response) => {
     const {password, newPassword} = req.body;
-     const userId = req.user?._id;
+     const userId = req.user?.id;
     if(!password || !newPassword){
         const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
         res.status(400).json(response);
@@ -269,7 +269,7 @@ const login = async (req : Request, res : Response) => {
         const token = createToken(user);
         res.cookie('token',token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV !== 'production',
             sameSite: 'none',
             maxAge: 60 * 60 * 3000,
         });
@@ -301,7 +301,7 @@ const logout = async (req : Request, res : Response) => {
 };
 
 const getUserDetails  = async (req : Request, res : Response) => {
-    const userId = req.user?._id;
+    const userId = req.user?.id;
     if(!userId){
         const response = genericResponse(false, 'User not found', null, null, null);
         res.status(404).json(response);
@@ -379,7 +379,7 @@ const verifyOTP = async (req : Request, res : Response) => {
         const token = createToken(user);
         res.cookie('token',token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV !== 'production',
             sameSite: 'none',
             maxAge: 60 * 60 * 3000,
         });
@@ -455,7 +455,7 @@ const googleLogin = async (req : Request, res : Response) => {
         const token = createToken(user);
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV !== 'production',
             sameSite: 'none',
             maxAge: 60 * 60 * 3000,
         });

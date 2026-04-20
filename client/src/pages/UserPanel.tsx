@@ -1,12 +1,18 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { IoClose } from 'react-icons/io5';
 import { RxHamburgerMenu } from 'react-icons/rx';
+import { LuLogOut, LuUser } from 'react-icons/lu';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { Popover, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import { useChat } from '../context/useChat';
+import { useUser } from '../context/useUser';
 import { IUser } from '../models/user';
 import { useAsync } from '../hooks/useAsync';
 import { LoadingState, EmptyState, ErrorState } from '../components/ui/States';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
+import { logoutUser, resolveMediaUrl } from '../hooks/UseUser';
 
 const DEFAULT_AVATAR = 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg';
 
@@ -21,9 +27,36 @@ const fetchUsers = async (): Promise<IUser[]> => {
 
 const UserPanel = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const userContext = useUser();
+  const currentUser = userContext?.user as IUser | null;
   const [searchInput, setSearchInput] = useState('');
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const isMenuOpen = Boolean(menuAnchor);
   const chatContext = useChat();
   const { data: users, isLoading, isError, refetch } = useAsync<IUser[]>(fetchUsers, { deps: [] });
+
+  const openMenu = (e: React.MouseEvent<HTMLButtonElement>) => setMenuAnchor(e.currentTarget);
+  const closeMenu = () => setMenuAnchor(null);
+
+  const goToProfile = () => {
+    closeMenu();
+    navigate('/profile');
+  };
+
+  const handleLogout = async () => {
+    closeMenu();
+    const res = await logoutUser();
+    if (!res.isSuccessful) {
+      toast.error(res.displayMessage || t('profile.messages.logoutFailed'));
+    }
+    userContext?.logout();
+    navigate('/', { replace: true });
+  };
+
+  const currentUserAvatar = currentUser?.profileIcon
+    ? resolveMediaUrl(currentUser.profileIcon) || DEFAULT_AVATAR
+    : DEFAULT_AVATAR;
 
   const setSelectedUser = chatContext?.setSelectedUser;
   const selectedUser = chatContext?.selectedUser;
@@ -108,7 +141,7 @@ const UserPanel = () => {
                 ].join(' ')}
               >
                 <img
-                  src={user.profileIcon || DEFAULT_AVATAR}
+                  src={resolveMediaUrl(user.profileIcon) || DEFAULT_AVATAR}
                   alt=""
                   aria-hidden="true"
                   className="w-12 h-12 rounded-full me-3 object-cover bg-slate-700"
@@ -138,10 +171,61 @@ const UserPanel = () => {
         <button
           type="button"
           aria-label={t('chat.more')}
+          aria-haspopup="menu"
+          aria-expanded={isMenuOpen}
+          onClick={openMenu}
           className="inline-flex items-center justify-center h-10 w-10 rounded-md text-slate-300 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
         >
           <RxHamburgerMenu size={22} />
         </button>
+        <button
+          type="button"
+          aria-label={t('profile.openProfile')}
+          onClick={() => navigate('/profile')}
+          className="inline-flex items-center justify-center h-10 w-10 rounded-full overflow-hidden hover:ring-2 hover:ring-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+        >
+          <img
+            src={currentUserAvatar}
+            alt=""
+            aria-hidden="true"
+            className="w-10 h-10 rounded-full object-cover bg-slate-700"
+          />
+        </button>
+        <Popover
+          open={isMenuOpen}
+          anchorEl={menuAnchor}
+          onClose={closeMenu}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          slotProps={{
+            paper: {
+              sx: {
+                minWidth: 200,
+                padding: 1,
+                mt: 0.5,
+                backgroundColor: '#1e293b',
+                color: '#e2e8f0',
+                borderRadius: 2,
+                border: '1px solid #334155',
+              },
+            },
+          }}
+        >
+          <List role="menu">
+            <ListItemButton role="menuitem" onClick={goToProfile}>
+              <ListItemIcon sx={{ minWidth: 36, color: '#a5b4fc' }}>
+                <LuUser size={20} />
+              </ListItemIcon>
+              <ListItemText primary={t('profile.openProfile')} />
+            </ListItemButton>
+            <ListItemButton role="menuitem" onClick={handleLogout}>
+              <ListItemIcon sx={{ minWidth: 36, color: '#f87171' }}>
+                <LuLogOut size={20} />
+              </ListItemIcon>
+              <ListItemText primary={t('auth.logout')} />
+            </ListItemButton>
+          </List>
+        </Popover>
         <div role="search" className="flex-1 relative">
           <label htmlFor="contacts-search" className="sr-only">
             {t('chat.search')}

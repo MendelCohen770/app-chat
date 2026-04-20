@@ -5,6 +5,8 @@ import { genericResponse, createToken, generateOTP, sendEmail, saveOTPToDB } fro
 import { error, log } from 'console';
 import OTPModel from '../models/otp.schema';
 import { OAuth2Client } from 'google-auth-library';
+import path from 'path';
+import fs from 'fs';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -62,7 +64,14 @@ const signUp = async (req : Request, res : Response) => {
 }
 
 const updateUser = async (req : Request, res : Response) => {
-    const {username, email, phone, _id} = req.body;
+    const {username, email, phone, profileIcon} = req.body;
+    const authUserId = req.user?.id;
+
+    if(!authUserId){
+        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
+        res.status(401).json(response);
+        return;
+    }
 
     if(!username || !email || !phone){
         const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
@@ -83,13 +92,31 @@ const updateUser = async (req : Request, res : Response) => {
         return;
     }
     try{
-        const user = await User.findByIdAndUpdate(_id, {username, email, phone}, {new: true});
+        const duplicate = await User.findOne({
+            _id: { $ne: authUserId },
+            $or: [{ email }, { username }, { phone }],
+        });
+        if(duplicate){
+            let displayMessage = 'User with those details already exists';
+            if(duplicate.email === email) displayMessage = 'Email is already taken';
+            else if(duplicate.username === username) displayMessage = 'Username is already taken';
+            else if(duplicate.phone === phone) displayMessage = 'Phone number is already taken';
+            const response = genericResponse(false, displayMessage, null, null, null);
+            res.status(409).json(response);
+            return;
+        }
+
+        const update: Record<string, unknown> = { username, email, phone };
+        if(typeof profileIcon === 'string'){
+            update.profileIcon = profileIcon;
+        }
+
+        const user = await User.findByIdAndUpdate(authUserId, update, {new: true}).select('-password');
         if(!user){
             const response = genericResponse(false, 'User not found', null, null, null);
             res.status(404).json(response);
             return;
         }
-        user.password = '*****';
         const response = genericResponse(true, 'User updated successfully', null, null, user);
         res.status(200).json(response);
     }catch(err){
@@ -97,6 +124,62 @@ const updateUser = async (req : Request, res : Response) => {
         res.status(500).json(response);
     }
     
+}
+
+const profileIconsDir = path.join(__dirname, '..', 'uploads', 'profile');
+try {
+    fs.mkdirSync(profileIconsDir, { recursive: true });
+} catch (err) {
+    console.error('Failed to ensure profile uploads directory:', err);
+}
+
+const uploadProfileIcon = async (req : Request, res : Response) => {
+    const authUserId = req.user?.id;
+    const file = (req as any).file as Express.Multer.File | undefined;
+
+    if(!authUserId){
+        if(file){ try { fs.unlinkSync(file.path); } catch (_) {} }
+        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
+        res.status(401).json(response);
+        return;
+    }
+
+    if(!file){
+        const response = genericResponse(false, 'No image uploaded', null, 'profileIcon field is missing', null);
+        res.status(400).json(response);
+        return;
+    }
+
+    try{
+        const user = await User.findById(authUserId);
+        if(!user){
+            try { fs.unlinkSync(file.path); } catch (_) {}
+            const response = genericResponse(false, 'User not found', null, null, null);
+            res.status(404).json(response);
+            return;
+        }
+
+        const previousIcon = user.profileIcon;
+        const mediaUrl = `/uploads/profile/${file.filename}`;
+        user.profileIcon = mediaUrl;
+        await user.save();
+
+        if(previousIcon && previousIcon.startsWith('/uploads/profile/')){
+            const previousPath = path.join(__dirname, '..', previousIcon.replace(/^\//, ''));
+            fs.unlink(previousPath, () => { /* ignore missing file */ });
+        }
+
+        const safeUser = user.toObject();
+        if(safeUser.password){
+            safeUser.password = '*****';
+        }
+        const response = genericResponse(true, 'Profile picture updated', null, null, safeUser);
+        res.status(200).json(response);
+    }catch(err){
+        try { fs.unlinkSync(file.path); } catch (_) {}
+        const response = genericResponse(false, 'Error uploading profile picture', null, err instanceof Error ? err.message : 'Unknown error', null);
+        res.status(500).json(response);
+    }
 }
 
 const getAllUsers = async (req : Request, res : Response) => {
@@ -473,4 +556,4 @@ const googleLogin = async (req : Request, res : Response) => {
     }
 };
 
-export {signUp, updateUser, getAllUsers, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP, googleLogin};
+export {signUp, updateUser, uploadProfileIcon, getAllUsers, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP, googleLogin};

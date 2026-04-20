@@ -1,8 +1,38 @@
 import axios from "axios";
 import { ISignup } from "../models/signup";
+import { IResponse } from "../models/response";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 const BASE_URL = `${API_BASE_URL}/user`;
+
+export const API_ORIGIN = API_BASE_URL;
+
+const toResponse = (e: any, fallback: string): IResponse => {
+    if (e?.response?.data) {
+        return e.response.data as IResponse;
+    }
+    return {
+        isSuccessful: false,
+        displayMessage: fallback,
+        description: null,
+        exception: e?.message || 'Unknown error',
+        data: null,
+    };
+};
+
+/**
+ * Build a full URL for media paths returned by the server. Absolute URLs are
+ * returned as-is; relative paths (e.g. `/uploads/profile/foo.png`) are
+ * prefixed with the API origin so they can be loaded by the browser.
+ */
+export const resolveMediaUrl = (url?: string | null): string => {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) {
+        return url;
+    }
+    const normalized = url.startsWith('/') ? url : `/${url}`;
+    return `${API_ORIGIN}${normalized}`;
+};
 
 export const signup = async (user: ISignup): Promise<any> => {
     try{
@@ -90,6 +120,90 @@ export const googleLogin = async (credential: string): Promise<any> => {
             exception: e?.message || 'Unknown error',
             data: null,
         };
+    }
+};
+
+export interface IUpdateProfileInput {
+    username: string;
+    email: string;
+    phone: string;
+    profileIcon?: string;
+}
+
+export const updateUserProfile = async (payload: IUpdateProfileInput): Promise<IResponse> => {
+    try {
+        const response = await axios.post(
+            `${BASE_URL}/updateUser`,
+            payload,
+            { withCredentials: true },
+        );
+        return response.data as IResponse;
+    } catch (e: any) {
+        console.log('Update profile failed', e);
+        return toResponse(e, 'Failed to update profile');
+    }
+};
+
+export const uploadProfileIcon = async (file: File): Promise<IResponse> => {
+    try {
+        const formData = new FormData();
+        formData.append('profileIcon', file);
+        const response = await axios.post(
+            `${BASE_URL}/uploadProfileIcon`,
+            formData,
+            {
+                withCredentials: true,
+                headers: { 'Content-Type': 'multipart/form-data' },
+            },
+        );
+        return response.data as IResponse;
+    } catch (e: any) {
+        console.log('Upload profile icon failed', e);
+        return toResponse(e, 'Failed to upload profile picture');
+    }
+};
+
+export const changePassword = async (
+    password: string,
+    newPassword: string,
+): Promise<IResponse> => {
+    try {
+        const response = await axios.put(
+            `${BASE_URL}/changePassword`,
+            { password, newPassword },
+            { withCredentials: true },
+        );
+        return response.data as IResponse;
+    } catch (e: any) {
+        console.log('Change password failed', e);
+        return toResponse(e, 'Failed to change password');
+    }
+};
+
+export const getUserDetails = async (): Promise<IResponse> => {
+    try {
+        const response = await axios.get(
+            `${BASE_URL}/getUserDetails`,
+            { withCredentials: true },
+        );
+        return response.data as IResponse;
+    } catch (e: any) {
+        console.log('Get user details failed', e);
+        return toResponse(e, 'Failed to load user details');
+    }
+};
+
+export const logoutUser = async (): Promise<IResponse> => {
+    try {
+        const response = await axios.post(
+            `${BASE_URL}/logout`,
+            {},
+            { withCredentials: true },
+        );
+        return response.data as IResponse;
+    } catch (e: any) {
+        console.log('Logout failed', e);
+        return toResponse(e, 'Failed to logout');
     }
 };
 

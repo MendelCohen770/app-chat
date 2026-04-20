@@ -4,6 +4,9 @@ import bcrypt from "bcrypt";
 import { genericResponse, createToken, generateOTP, sendEmail, saveOTPToDB } from '../utils/helper';
 import { error, log } from 'console';
 import OTPModel from '../models/otp.schema';
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 
 const signUp = async (req : Request, res : Response) => {
@@ -171,6 +174,11 @@ const deleteSelfAccount = async (req : Request, res : Response) => {
             res.status(404).json(response);
             return;
         };
+        if(!user.password){
+            const response = genericResponse(false, 'Cannot verify password for a Google-only account', null, null, null);
+            res.status(400).json(response);
+            return;
+        };
         const isMatch = await bcrypt.compare(password, user.password);
         if(!isMatch){
             const response = genericResponse(false, 'Invalid credentials', null, null, null);
@@ -208,6 +216,11 @@ const changePassword = async (req : Request, res : Response) => {
             res.status(404).json(response);
             return;
         };
+        if(!user.password){
+            const response = genericResponse(false, 'Cannot change password for a Google-only account', null, null, null);
+            res.status(400).json(response);
+            return;
+        };
         const isMatch = await bcrypt.compare(password, user.password);
         if(!isMatch){
             const response = genericResponse(false, 'Invalid credentials', null, null, null);
@@ -240,6 +253,11 @@ const login = async (req : Request, res : Response) => {
         if(!user){
             const response = genericResponse(false, 'User not found', null, null, null);
             res.status(404).json(response);
+            return;
+        };
+        if(!user.password){
+            const response = genericResponse(false, 'Please login with Google', null, 'Account has no password set', null);
+            res.status(401).json(response);
             return;
         };
         const isMatch = await bcrypt.compare(password, user.password);
@@ -376,4 +394,83 @@ const verifyOTP = async (req : Request, res : Response) => {
     };
 };
 
-export {signUp, updateUser, getAllUsers, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP};
+const googleLogin = async (req : Request, res : Response) => {
+    const { credential } = req.body;
+    if(!credential){
+        const response = genericResponse(false, 'Missing Google credential', null, 'credential field is missing', null);
+        res.status(400).json(response);
+        return;
+    }
+    if(!process.env.GOOGLE_CLIENT_ID){
+        const response = genericResponse(false, 'Google login is not configured', null, 'GOOGLE_CLIENT_ID env var is missing', null);
+        res.status(500).json(response);
+        return;
+    }
+    try{
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        if(!payload || !payload.email || !payload.sub){
+            const response = genericResponse(false, 'Invalid Google token', null, 'Token payload is missing required fields', null);
+            res.status(401).json(response);
+            return;
+        }
+        if(payload.email_verified === false){
+            const response = genericResponse(false, 'Google email is not verified', null, null, null);
+            res.status(401).json(response);
+            return;
+        }
+
+        const email = payload.email;
+        const googleId = payload.sub;
+        const picture = payload.picture || '';
+        const name = payload.name || email.split('@')[0];
+
+        let user = await User.findOne({ $or: [{ googleId }, { email }] });
+        if(!user){
+            let baseUsername = (name || email.split('@')[0]).replace(/\s+/g, '').slice(0, 20) || 'user';
+            let username = baseUsername;
+            let counter = 0;
+            while(await User.findOne({ username })){
+                counter += 1;
+                username = `${baseUsername}${counter}`;
+            }
+            user = new User({
+                username,
+                email,
+                googleId,
+                profileIcon: picture,
+            });
+            await user.save();
+        } else if(!user.googleId){
+            user.googleId = googleId;
+            if(picture && !user.profileIcon){
+                user.profileIcon = picture;
+            }
+            await user.save();
+        }
+
+        const token = createToken(user);
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'none',
+            maxAge: 60 * 60 * 3000,
+        });
+
+        const safeUser = user.toObject();
+        if(safeUser.password){
+            safeUser.password = '*****';
+        }
+        const response = genericResponse(true, 'Logged in successfully with Google', null, null, safeUser);
+        res.status(200).json(response);
+    }catch(err){
+        console.log('Google login error:', err);
+        const response = genericResponse(false, 'Failed to verify Google token', null, err instanceof Error ? err.message : 'Unknown error', null);
+        res.status(401).json(response);
+    }
+};
+
+export {signUp, updateUser, getAllUsers, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP, googleLogin};

@@ -1,7 +1,8 @@
 import axios from "axios";
 import { ISignup } from "../models/signup";
 
-const BASE_URL = 'http://localhost:3000/user'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const BASE_URL = `${API_BASE_URL}/user`;
 
 export const signup = async (user: ISignup): Promise<any> => {
     try{
@@ -20,6 +21,29 @@ export const login = async (username: string, password: string): Promise<any> =>
     }catch(e ) {
       console.log("Login failed", e);
         return e;
+    }
+};
+
+export const googleLogin = async (credential: string): Promise<any> => {
+    try{
+        const response = await axios.post(
+            `${BASE_URL}/googleLogin`,
+            { credential },
+            { withCredentials: true }
+        );
+        return response.data;
+    }catch(e: any){
+        console.log("Google login failed", e);
+        if(e?.response?.data){
+            return e.response.data;
+        }
+        return {
+            isSuccessful: false,
+            displayMessage: 'Google login failed',
+            description: null,
+            exception: e?.message || 'Unknown error',
+            data: null,
+        };
     }
 };
 

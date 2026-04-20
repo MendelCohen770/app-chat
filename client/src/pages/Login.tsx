@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { VscEyeClosed, VscEye } from "react-icons/vsc";
-import { login} from '../hooks/UseUser'
+import { login, googleLogin } from '../hooks/UseUser'
 import { IResponse } from '../models/response';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { IUser } from '../models/user';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 const LoginPage: React.FC = () => {
 
@@ -53,8 +55,29 @@ const LoginPage: React.FC = () => {
         navigate('/home');
     }
 
-    const handleGoogleLogin = () => {
-
+    const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
+        const credential = credentialResponse.credential;
+        if(!credential){
+            console.error('No Google credential returned');
+            alert('Google login failed: missing credential');
+            return;
+        }
+        const res: IResponse = await googleLogin(credential);
+        if(!res.isSuccessful){
+            console.log(res.displayMessage);
+            alert(res.displayMessage || 'Google login failed');
+            return;
+        }
+        if(!userContext){
+            throw new Error("useUser must be used within a UserProvider");
+        }
+        const { saveUser } = userContext;
+        if(res.data && typeof res.data === 'object' && '_id' in res.data){
+            saveUser(res.data as IUser);
+            navigate('/home');
+        } else {
+            console.error('Invalid user data:', res.data);
+        }
     }
 
     return (
@@ -95,11 +118,17 @@ const LoginPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <GoogleLogin
-                             onSuccess={handleGoogleLogin}
-                             onError={() => console.log('Login Failed')}
-                             useOneTap
-                         />
+                    {GOOGLE_CLIENT_ID ? (
+                        <GoogleLogin
+                            onSuccess={handleGoogleLogin}
+                            onError={() => console.log('Login Failed')}
+                            useOneTap
+                        />
+                    ) : (
+                        <p className="text-xs text-amber-400 text-center">
+                            Google login is not configured. Set <code>VITE_GOOGLE_CLIENT_ID</code> in <code>client/.env</code>.
+                        </p>
+                    )}
 
                     <button type="submit" className="w-full py-3 bg-orange-400 text-white font-semibold rounded-md hover:bg-orange-500 transition duration-200">Login</button>
 
@@ -237,8 +266,11 @@ const LoginPage: React.FC = () => {
 };
 
 const App: React.FC = () => {
+    if(!GOOGLE_CLIENT_ID){
+        return <LoginPage />;
+    }
     return (
-        <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <LoginPage />
         </GoogleOAuthProvider>
     );

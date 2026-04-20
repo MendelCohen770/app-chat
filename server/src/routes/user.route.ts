@@ -12,13 +12,15 @@ import {
     logout,
     getUserDetails,
     otpService,
-    verifyOTP
+    verifyOTP,
+    googleLogin
 } from '../controllers/user.controller'
 
 const userRoute = express.Router();
 
 userRoute.post('/signUp', signUp);
 userRoute.post('/login', login);
+userRoute.post('/googleLogin', googleLogin);
 userRoute.post('/otpService', otpService);
 userRoute.post('/verifyOTP', verifyOTP);
 userRoute.put('/changePassword', changePassword);

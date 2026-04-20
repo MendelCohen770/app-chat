@@ -105,6 +105,28 @@
     "closeEmoji": "Close emoji picker",
     "call": "Call",
     "more": "More options",
+    "searchInChat": {
+      "open": "Search in conversation",
+      "close": "Close search",
+      "placeholder": "Search messages",
+      "clear": "Clear search",
+      "resultsCount_one": "{{count}} result",
+      "resultsCount_other": "{{count}} results",
+      "noMatches": "No messages match your search"
+    },
+    "voiceCall": {
+      "title": "Voice call",
+      "calling": "Calling {{name}}…",
+      "ringing": "Ringing…",
+      "connecting": "Connecting…",
+      "end": "End call",
+      "demoNote": "Voice calls are a preview feature — the line is not actually connected."
+    },
+    "menu": {
+      "closeChat": "Close chat",
+      "scrollToBottom": "Jump to latest",
+      "clearSearch": "Clear search"
+    },
     "contactList": "Contact list",
     "conversation": "Conversation",
     "backToContacts": "Back to contacts",

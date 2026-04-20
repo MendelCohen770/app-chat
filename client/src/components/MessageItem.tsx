@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiFile, FiDownload } from 'react-icons/fi';
 import VoiceMessagePlayer from './VoiceMessagePlayer';
@@ -16,6 +16,7 @@ type Message = {
 
 interface MessageItemProps {
   message: Message;
+  highlight?: string;
 }
 
 const resolveMediaUrl = (media?: string): string | undefined => {
@@ -30,12 +31,40 @@ const extractFileName = (message: Message): string => {
   if (message.media) {
     const cleaned = message.media.split('?')[0];
     const last = cleaned.split('/').pop() || '';
-    return decodeURIComponent(last);
+    try {
+      return decodeURIComponent(last);
+    } catch {
+      return last;
+    }
   }
   return '';
 };
 
-const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
+const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Renders `text` with case-insensitive occurrences of `needle` wrapped in a
+// highlighted <mark>. Falls back to plain text when there's no active search.
+const renderHighlighted = (text: string, needle: string): React.ReactNode => {
+  if (!text) return text;
+  const trimmed = needle.trim();
+  if (!trimmed) return text;
+  const regex = new RegExp(`(${escapeRegExp(trimmed)})`, 'gi');
+  const parts = text.split(regex);
+  return parts.map((part, idx) =>
+    regex.test(part) ? (
+      <mark
+        key={idx}
+        className="bg-yellow-300 text-slate-900 rounded-sm px-0.5"
+      >
+        {part}
+      </mark>
+    ) : (
+      <React.Fragment key={idx}>{part}</React.Fragment>
+    ),
+  );
+};
+
+const MessageItem: React.FC<MessageItemProps> = ({ message, highlight }) => {
   const { t } = useTranslation();
   const isMine = message.sender === 'me';
   const mediaUrl = resolveMediaUrl(message.media);
@@ -45,6 +74,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const isVideo = message.type === 'video' && hasMedia;
   const isFile = message.type === 'file' && hasMedia;
   const isMediaBubble = isImage || isVideo || isFile;
+
+  const fileName = useMemo(() => extractFileName(message), [message]);
 
   const ariaLabel = (() => {
     if (isAudio) {
@@ -68,8 +99,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     if (isFile) {
       const label = t('chat.media.fileLabel');
       return isMine
-        ? `${t('chat.messageFromMe')} ${label} ${extractFileName(message)} ${message.timestamp}`
-        : `${t('chat.messageFrom', { name: '' })} ${label} ${extractFileName(message)} ${message.timestamp}`;
+        ? `${t('chat.messageFromMe')} ${label} ${fileName} ${message.timestamp}`
+        : `${t('chat.messageFrom', { name: '' })} ${label} ${fileName} ${message.timestamp}`;
     }
     return isMine
       ? `${t('chat.messageFromMe')} ${message.text} ${message.timestamp}`
@@ -127,13 +158,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             ].join(' ')}
           >
             <FiFile size={22} aria-hidden="true" className="shrink-0" />
-            <span className="truncate flex-1 text-sm">{extractFileName(message)}</span>
+            <span className="truncate flex-1 text-sm">
+              {renderHighlighted(fileName, highlight || '')}
+            </span>
             <FiDownload size={18} aria-hidden="true" className="shrink-0 opacity-80" />
           </a>
         )}
 
         {!isAudio && !isMediaBubble && (
-          <p className="whitespace-pre-wrap pe-12">{message.text}</p>
+          <p className="whitespace-pre-wrap pe-12">
+            {renderHighlighted(message.text, highlight || '')}
+          </p>
         )}
 
         <span

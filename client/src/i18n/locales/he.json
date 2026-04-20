@@ -105,6 +105,28 @@
     "closeEmoji": "סגירת אימוג'ים",
     "call": "שיחה",
     "more": "אפשרויות נוספות",
+    "searchInChat": {
+      "open": "חיפוש בהודעות",
+      "close": "סגירת חיפוש",
+      "placeholder": "חיפוש בהודעות",
+      "clear": "ניקוי חיפוש",
+      "resultsCount_one": "תוצאה אחת",
+      "resultsCount_other": "{{count}} תוצאות",
+      "noMatches": "לא נמצאו הודעות מתאימות"
+    },
+    "voiceCall": {
+      "title": "שיחה קולית",
+      "calling": "מתקשר ל-{{name}}…",
+      "ringing": "מצלצל…",
+      "connecting": "מתחבר…",
+      "end": "סיום שיחה",
+      "demoNote": "שיחות קוליות הן פיצ'ר לתצוגה מקדימה — אין חיבור אמיתי."
+    },
+    "menu": {
+      "closeChat": "סגירת שיחה",
+      "scrollToBottom": "גלילה לסוף",
+      "clearSearch": "ניקוי חיפוש"
+    },
     "contactList": "רשימת אנשי קשר",
     "conversation": "שיחה",
     "backToContacts": "חזרה לרשימת אנשי הקשר",

@@ -13,6 +13,7 @@ import { IUser } from '../models/user';
 import { LoadingState, EmptyState, ErrorState } from '../components/ui/States';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
 import { logoutUser, resolveMediaUrl } from '../hooks/UseUser';
+import { API_BASE_URL } from '../config/env';
 
 const DEFAULT_AVATAR = 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg';
 const USERS_PAGE_SIZE = 20;
@@ -26,9 +27,8 @@ type UsersPage = {
 };
 
 const fetchUsersPage = async (page: number, limit: number): Promise<UsersPage> => {
-  const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-  const res = await fetch(`${baseUrl}/user/getAllUsers?${params.toString()}`, {
+  const res = await fetch(`${API_BASE_URL}/user/getAllUsers?${params.toString()}`, {
     credentials: 'include',
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

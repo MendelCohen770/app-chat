@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useUser } from '../context/useUser';
 import { useChat } from '../context/useChat';
+import { API_BASE_URL } from '../config/env';
 
 type UploadKind = 'image' | 'video' | 'file';
 
@@ -71,8 +72,7 @@ const MediaUploader: React.FC = () => {
       return;
     }
 
-    const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
-    const url = `${baseUrl}/message/sendMedia`;
+    const url = `${API_BASE_URL}/message/sendMedia`;
     const form = new FormData();
     form.append('media', file, file.name);
     form.append('receiver', otherId);

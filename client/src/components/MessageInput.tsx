@@ -8,6 +8,7 @@ import MediaUploader from './MediaUploader';
 import Recordings from './Recordings';
 import { useUser } from '../context/useUser';
 import { useChat } from '../context/useChat';
+import { API_BASE_URL } from '../config/env';
 
 interface sendMessageProps {
   sendMessage: (message: string) => void;
@@ -33,8 +34,7 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
     const otherId = chat?.selectedUser?._id;
     const trimmed = message.trim();
     if (!myId || !otherId || !trimmed) return;
-    const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
-    const url = `${baseUrl}/message/sendMessage`;
+    const url = `${API_BASE_URL}/message/sendMessage`;
     setSending(true);
     try {
       const res = await fetch(url, {

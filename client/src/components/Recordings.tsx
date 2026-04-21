@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useUser } from '../context/useUser';
 import { useChat } from '../context/useChat';
 import Waveform, { buildPreviewBars, formatDuration } from './ui/Waveform';
+import { API_BASE_URL } from '../config/env';
 
 type RecorderMode = 'idle' | 'recording' | 'preview' | 'uploading';
 
@@ -287,8 +288,7 @@ const Recordings = () => {
       toast.error(t('common.error'));
       return;
     }
-    const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
-    const url = `${baseUrl}/message/sendVoice`;
+    const url = `${API_BASE_URL}/message/sendVoice`;
     const form = new FormData();
     const ext = extensionFor(mimeRef.current || blob.type);
     form.append('audio', blob, `voice-${Date.now()}.${ext}`);

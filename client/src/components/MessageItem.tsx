@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiFile, FiDownload } from 'react-icons/fi';
 import VoiceMessagePlayer from './VoiceMessagePlayer';
+import { API_BASE_URL } from '../config/env';
 
 type MessageKind = 'text' | 'image' | 'video' | 'audio' | 'file';
 
@@ -22,8 +23,7 @@ interface MessageItemProps {
 const resolveMediaUrl = (media?: string): string | undefined => {
   if (!media) return undefined;
   if (/^https?:\/\//i.test(media)) return media;
-  const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
-  return `${baseUrl}${media.startsWith('/') ? '' : '/'}${media}`;
+  return `${API_BASE_URL}${media.startsWith('/') ? '' : '/'}${media}`;
 };
 
 const extractFileName = (message: Message): string => {

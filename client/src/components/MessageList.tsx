@@ -5,6 +5,7 @@ import { useChat } from '../context/useChat';
 import { useUser } from '../context/useUser';
 import { onNewMessage } from '../service/socket';
 import { LoadingState, EmptyState, ErrorState } from './ui/States';
+import { API_BASE_URL } from '../config/env';
 
 type MessageKind = 'text' | 'image' | 'video' | 'audio' | 'file';
 type MessageVm = {
@@ -46,14 +47,13 @@ const fetchMessagesPage = async (
   otherId: string,
   before: string | null,
 ): Promise<MessagesPage> => {
-  const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
   const params = new URLSearchParams({
     sender: myId,
     receiver: otherId,
     limit: String(PAGE_SIZE),
   });
   if (before) params.set('before', before);
-  const res = await fetch(`${baseUrl}/message/getMessages?${params.toString()}`, {
+  const res = await fetch(`${API_BASE_URL}/message/getMessages?${params.toString()}`, {
     credentials: 'include',
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

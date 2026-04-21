@@ -1,11 +1,12 @@
 import axios from "axios";
 import { ISignup } from "../models/signup";
 import { IResponse } from "../models/response";
+import { API_BASE_URL, resolveMediaUrl } from "../config/env";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 const BASE_URL = `${API_BASE_URL}/user`;
 
 export const API_ORIGIN = API_BASE_URL;
+export { resolveMediaUrl };
 
 const toResponse = (e: any, fallback: string): IResponse => {
     if (e?.response?.data) {
@@ -18,20 +19,6 @@ const toResponse = (e: any, fallback: string): IResponse => {
         exception: e?.message || 'Unknown error',
         data: null,
     };
-};
-
-/**
- * Build a full URL for media paths returned by the server. Absolute URLs are
- * returned as-is; relative paths (e.g. `/uploads/profile/foo.png`) are
- * prefixed with the API origin so they can be loaded by the browser.
- */
-export const resolveMediaUrl = (url?: string | null): string => {
-    if (!url) return '';
-    if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) {
-        return url;
-    }
-    const normalized = url.startsWith('/') ? url : `/${url}`;
-    return `${API_ORIGIN}${normalized}`;
 };
 
 export const signup = async (user: ISignup): Promise<any> => {

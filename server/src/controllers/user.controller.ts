@@ -7,6 +7,7 @@ import { OAuth2Client } from 'google-auth-library';
 import path from 'path';
 import fs from 'fs';
 import { asyncHandler, AppError } from '../middlewares/errorHandler';
+import { logger } from '../utils/logger';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -105,7 +106,7 @@ const profileIconsDir = path.join(__dirname, '..', 'uploads', 'profile');
 try {
     fs.mkdirSync(profileIconsDir, { recursive: true });
 } catch (err) {
-    console.error('Failed to ensure profile uploads directory:', err);
+    logger.error({ err, dir: profileIconsDir }, 'Failed to ensure profile uploads directory');
 }
 
 const uploadProfileIcon = asyncHandler(async (req: Request, res: Response) => {

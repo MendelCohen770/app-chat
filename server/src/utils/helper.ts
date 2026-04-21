@@ -4,6 +4,7 @@ import {IUser} from '../models/user.schema';
 import nodemailer from 'nodemailer';
 import OTPModel from "../models/otp.schema";
 import dotenv from 'dotenv'
+import { logger } from './logger';
 
 dotenv.config();
 
@@ -55,9 +56,9 @@ export const sendEmail = async (email : string, otp : string) => {
         };
     
         await transporter.sendMail(mailOptions);
-        console.log('Email send');
+        logger.info({ to: email }, 'OTP email sent');
     }catch(err){
-        console.error('Error sending email:', err);
+        logger.error({ err, to: email }, 'Error sending OTP email');
     }
     
 };

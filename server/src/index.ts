@@ -11,6 +11,8 @@ import { Server } from 'socket.io';
 import http from 'http';
 import setUpSocket, { setIO } from './sockets/socket';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
+import { correlationId, httpLogger } from './middlewares/requestContext';
+import { logger } from './utils/logger';
 
 
 
@@ -34,6 +36,8 @@ const io = new Server(server,{
 });
 setUpSocket(io);
 setIO(io);
+app.use(correlationId);
+app.use(httpLogger);
 app.use(cookieParser());
 app.use(express.json());
 app.use('/user', userRoute);
@@ -45,12 +49,12 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 process.on('unhandledRejection', (reason) => {
-  console.error('[unhandledRejection]', reason);
+  logger.error({ err: reason }, 'unhandledRejection');
 });
 process.on('uncaughtException', (err) => {
-  console.error('[uncaughtException]', err);
+  logger.fatal({ err }, 'uncaughtException');
 });
 
 server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  logger.info({ port, clientOrigin }, `Server running at http://localhost:${port}`);
 });

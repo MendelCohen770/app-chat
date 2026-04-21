@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import { asyncHandler, AppError } from '../middlewares/errorHandler';
+import { logger } from '../utils/logger';
 
 const safeUnlink = (p?: string) => {
     if (!p) return;
@@ -84,7 +85,7 @@ const audioUploadsDir = path.join(__dirname, '..', 'uploads', 'audio');
 try {
     fs.mkdirSync(audioUploadsDir, { recursive: true });
 } catch (err) {
-    console.error('Failed to ensure audio uploads directory:', err);
+    logger.error({ err, dir: audioUploadsDir }, 'Failed to ensure audio uploads directory');
 }
 
 const audioStorage = multer.diskStorage({

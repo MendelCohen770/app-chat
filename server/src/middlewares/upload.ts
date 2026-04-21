@@ -1,12 +1,13 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { logger } from "../utils/logger";
 
 const defaultUploadsDir = path.join(__dirname, "..", "uploads");
 try {
     fs.mkdirSync(defaultUploadsDir, { recursive: true });
 } catch (err) {
-    console.error("Failed to ensure uploads directory:", err);
+    logger.error({ err, dir: defaultUploadsDir }, "Failed to ensure uploads directory");
 }
 
 // Default image upload (used by legacy code paths / general purpose).
@@ -40,7 +41,7 @@ const profileIconsDir = path.join(__dirname, "..", "uploads", "profile");
 try {
     fs.mkdirSync(profileIconsDir, { recursive: true });
 } catch (err) {
-    console.error("Failed to ensure profile uploads directory:", err);
+    logger.error({ err, dir: profileIconsDir }, "Failed to ensure profile uploads directory");
 }
 
 const profileIconStorage = multer.diskStorage({
@@ -85,7 +86,7 @@ const chatMediaDir = path.join(__dirname, "..", "uploads", "media");
 try {
     fs.mkdirSync(chatMediaDir, { recursive: true });
 } catch (err) {
-    console.error("Failed to ensure chat media directory:", err);
+    logger.error({ err, dir: chatMediaDir }, "Failed to ensure chat media directory");
 }
 
 const chatMediaStorage = multer.diskStorage({

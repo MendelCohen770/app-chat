@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { genericResponse } from '../utils/helper';
+import { logger } from '../utils/logger';
 
 export class AppError extends Error {
     public readonly statusCode: number;
@@ -45,8 +46,10 @@ export const errorHandler = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _next: NextFunction,
 ) => {
+    const reqLogger = (req as Request & { log?: typeof logger }).log ?? logger;
+
     if (res.headersSent) {
-        console.error('[errorHandler] headers already sent, delegating', err);
+        reqLogger.error({ err }, 'errorHandler: headers already sent, delegating');
         return;
     }
 
@@ -86,10 +89,18 @@ export const errorHandler = (
         description = typeof err === 'string' ? err : null;
     }
 
-    console.error(
-        `[errorHandler] ${req.method} ${req.originalUrl} -> ${statusCode}`,
+    const logPayload = {
         err,
-    );
+        method: req.method,
+        url: req.originalUrl,
+        statusCode,
+        exception,
+    };
+    if (statusCode >= 500) {
+        reqLogger.error(logPayload, 'Request failed');
+    } else {
+        reqLogger.warn(logPayload, 'Request rejected');
+    }
 
     const payload = genericResponse(
         false,

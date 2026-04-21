@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { BsEmojiSunglasses } from 'react-icons/bs';
@@ -9,10 +9,15 @@ import Recordings from './Recordings';
 import { useUser } from '../context/useUser';
 import { useChat } from '../context/useChat';
 import { API_BASE_URL } from '../config/env';
+import { emitTypingStart, emitTypingStop } from '../service/socket';
 
 interface sendMessageProps {
   sendMessage: (message: string) => void;
 }
+
+// Clear the "typing…" indicator after a short idle window without further
+// keystrokes. Tuned to feel snappy while still bridging short pauses.
+const TYPING_IDLE_TIMEOUT_MS = 2500;
 
 const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
   const { t } = useTranslation();
@@ -23,10 +28,77 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
   const userCtx = useUser();
   const chat = useChat();
 
+  const receiverIdRef = useRef<string | null>(null);
+  const isTypingRef = useRef<boolean>(false);
+  const idleTimerRef = useRef<number | null>(null);
+
+  const clearIdleTimer = () => {
+    if (idleTimerRef.current !== null) {
+      window.clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+  };
+
+  const stopTyping = () => {
+    clearIdleTimer();
+    if (!isTypingRef.current) return;
+    isTypingRef.current = false;
+    const receiverId = receiverIdRef.current;
+    if (receiverId) emitTypingStop(receiverId);
+  };
+
+  const notifyTyping = (receiverId: string) => {
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      emitTypingStart(receiverId);
+    }
+    clearIdleTimer();
+    idleTimerRef.current = window.setTimeout(() => {
+      stopTyping();
+    }, TYPING_IDLE_TIMEOUT_MS);
+  };
+
+  const selectedUserId = chat?.selectedUser?._id ?? null;
+
+  useEffect(() => {
+    const previousReceiver = receiverIdRef.current;
+    if (previousReceiver && previousReceiver !== selectedUserId && isTypingRef.current) {
+      isTypingRef.current = false;
+      clearIdleTimer();
+      emitTypingStop(previousReceiver);
+    }
+    receiverIdRef.current = selectedUserId;
+    setMessage('');
+  }, [selectedUserId]);
+
+  useEffect(() => {
+    return () => {
+      clearIdleTimer();
+      if (isTypingRef.current && receiverIdRef.current) {
+        emitTypingStop(receiverIdRef.current);
+        isTypingRef.current = false;
+      }
+    };
+  }, []);
+
   const handleEmojiClick = (emojiObject: any) => {
     setMessage((prev) => prev + emojiObject.emoji);
     setShowPicker(false);
     inputRef.current?.focus();
+    const receiverId = chat?.selectedUser?._id;
+    if (receiverId) notifyTyping(receiverId);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+    const receiverId = chat?.selectedUser?._id;
+    if (!receiverId) return;
+    if (value.trim().length > 0) {
+      notifyTyping(receiverId);
+    } else {
+      stopTyping();
+    }
   };
 
   const handleSendMessage = async () => {
@@ -46,6 +118,7 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       sendMessage(trimmed);
       setMessage('');
+      stopTyping();
       inputRef.current?.focus();
     } catch {
       toast.error(t('common.error'));
@@ -100,7 +173,8 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
         type="text"
         placeholder={t('chat.messageInputPlaceholder')}
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleInputChange}
+        onBlur={stopTyping}
         onKeyDown={handleKeyDown}
         className="flex-1 h-11 bg-slate-700 text-white rounded-md px-3 placeholder:text-slate-400 border border-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
         disabled={sending}

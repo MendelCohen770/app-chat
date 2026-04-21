@@ -99,3 +99,46 @@ export const requestPresenceList = () => {
     if (!socket) return;
     socket.emit('presence:list');
 };
+
+// ---------- Typing indicators ----------
+
+export type TypingHandlers = {
+    onTypingStart?: (userId: string) => void;
+    onTypingStop?: (userId: string) => void;
+};
+
+/**
+ * Subscribe to typing events coming from peers who are typing *to the current user*.
+ * Returns an unsubscribe function that detaches the handlers.
+ */
+export const subscribeToTyping = (handlers: TypingHandlers): (() => void) => {
+    if (!socket) return () => {};
+    const s = socket;
+
+    const startHandler = (payload: { from: string }) => {
+        if (payload?.from) handlers.onTypingStart?.(payload.from);
+    };
+    const stopHandler = (payload: { from: string }) => {
+        if (payload?.from) handlers.onTypingStop?.(payload.from);
+    };
+
+    s.on('typing:start', startHandler);
+    s.on('typing:stop', stopHandler);
+
+    return () => {
+        s.off('typing:start', startHandler);
+        s.off('typing:stop', stopHandler);
+    };
+};
+
+/** Tell the server that the current user started typing to `receiverId`. */
+export const emitTypingStart = (receiverId: string) => {
+    if (!socket || !receiverId) return;
+    socket.emit('typing:start', { to: receiverId });
+};
+
+/** Tell the server that the current user stopped typing to `receiverId`. */
+export const emitTypingStop = (receiverId: string) => {
+    if (!socket || !receiverId) return;
+    socket.emit('typing:stop', { to: receiverId });
+};

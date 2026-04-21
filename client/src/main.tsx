@@ -7,15 +7,18 @@ import DirectionProvider from "./i18n/DirectionProvider";
 import { ChatProvider } from "./context/ChatProvider";
 import { UserProvider } from "./context/UserProvider";
 import { PresenceProvider } from "./context/PresenceProvider";
+import { TypingProvider } from "./context/TypingProvider";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <DirectionProvider>
       <UserProvider>
         <PresenceProvider>
-          <ChatProvider>
-            <App />
-          </ChatProvider>
+          <TypingProvider>
+            <ChatProvider>
+              <App />
+            </ChatProvider>
+          </TypingProvider>
         </PresenceProvider>
       </UserProvider>
     </DirectionProvider>

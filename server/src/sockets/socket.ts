@@ -8,6 +8,23 @@ const onlineUsers = new Map<string, Set<string>>();
 
 const getOnlineUserIds = (): string[] => Array.from(onlineUsers.keys());
 
+// socketId -> set of userIds that this socket is currently "typing" to.
+// Used on disconnect to proactively notify peers so indicators do not get stuck.
+const typingTargetsBySocket = new Map<string, Set<string>>();
+
+const addTypingTarget = (socketId: string, targetUserId: string) => {
+    const targets = typingTargetsBySocket.get(socketId) ?? new Set<string>();
+    targets.add(targetUserId);
+    typingTargetsBySocket.set(socketId, targets);
+};
+
+const removeTypingTarget = (socketId: string, targetUserId: string) => {
+    const targets = typingTargetsBySocket.get(socketId);
+    if (!targets) return;
+    targets.delete(targetUserId);
+    if (targets.size === 0) typingTargetsBySocket.delete(socketId);
+};
+
 const setUpSocket = (io: Server) => {
     io.on("connection", (socket: Socket) => {
         const correlationId =
@@ -47,8 +64,30 @@ const setUpSocket = (io: Server) => {
                 socket.emit("presence:list", { userIds: getOnlineUserIds() });
             });
 
+            socket.on("typing:start", (payload: { to?: string } = {}) => {
+                const to = typeof payload?.to === "string" ? payload.to : undefined;
+                if (!userId || !to || to === userId) return;
+                addTypingTarget(socket.id, to);
+                io.to(to).emit("typing:start", { from: userId });
+            });
+
+            socket.on("typing:stop", (payload: { to?: string } = {}) => {
+                const to = typeof payload?.to === "string" ? payload.to : undefined;
+                if (!userId || !to || to === userId) return;
+                removeTypingTarget(socket.id, to);
+                io.to(to).emit("typing:stop", { from: userId });
+            });
+
             socket.on("disconnect", (reason) => {
                 logger.info({ socketId: socket.id, reason }, "Socket disconnected");
+
+                const pendingTargets = typingTargetsBySocket.get(socket.id);
+                if (pendingTargets && userId) {
+                    for (const target of pendingTargets) {
+                        io.to(target).emit("typing:stop", { from: userId });
+                    }
+                }
+                typingTargetsBySocket.delete(socket.id);
 
                 if (!userId) return;
                 const sockets = onlineUsers.get(userId);

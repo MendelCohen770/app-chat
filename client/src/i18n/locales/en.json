@@ -89,6 +89,7 @@
     "messagesError": "Failed to load messages",
     "messageInputPlaceholder": "Message",
     "sendMessage": "Send message",
+    "typing": "typing…",
     "recordVoice": "Record voice message",
     "attach": "Attach",
     "attachImage": "Image",

@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useChat } from '../context/useChat';
+import { usePresence } from '../context/usePresence';
+import { useTyping } from '../context/useTyping';
 import { resolveMediaUrl } from '../hooks/UseUser';
 
 const DEFAULT_AVATAR = 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg';
@@ -8,6 +10,19 @@ const ContactInfo = () => {
   const { t } = useTranslation();
   const chatContext = useChat();
   const selectedUser = chatContext?.selectedUser;
+  const { isOnline } = usePresence();
+  const { isTyping } = useTyping();
+
+  const peerIsTyping = isTyping(selectedUser?._id);
+  const peerIsOnline = isOnline(selectedUser?._id);
+  const statusText = peerIsTyping
+    ? t('chat.typing')
+    : peerIsOnline
+      ? t('common.online')
+      : t('common.offline');
+  const statusClassName = peerIsTyping
+    ? 'text-xs text-orange-300 truncate italic'
+    : 'text-xs text-slate-400 truncate';
 
   return (
     <div className="flex items-center p-2 h-full cursor-pointer flex-1 min-w-0">
@@ -21,7 +36,9 @@ const ContactInfo = () => {
         <span className="text-base font-semibold text-slate-100 truncate">
           {selectedUser?.username || t('common.unknown')}
         </span>
-        <span className="text-xs text-slate-400 truncate">{t('common.online')}</span>
+        <span className={statusClassName} aria-live="polite">
+          {statusText}
+        </span>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import userRoute from './routes/user.route'
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import messageRoute from './routes/message.route';
+import healthRoute from './routes/health.route';
 import { Server } from 'socket.io';
 import http from 'http';
 import setUpSocket, { setIO } from './sockets/socket';
@@ -35,7 +36,8 @@ setIO(io);
 app.use(cookieParser());
 app.use(express.json());
 app.use('/user', userRoute);
-app.use('/message',messageRoute)
+app.use('/message', messageRoute);
+app.use('/', healthRoute);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 

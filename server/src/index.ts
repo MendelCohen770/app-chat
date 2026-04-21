@@ -13,6 +13,7 @@ import setUpSocket, { setIO } from './sockets/socket';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { correlationId, httpLogger } from './middlewares/requestContext';
 import { logger } from './utils/logger';
+import mongoose from 'mongoose';
 
 
 
@@ -58,3 +59,55 @@ process.on('uncaughtException', (err) => {
 server.listen(port, () => {
   logger.info({ port, clientOrigin }, `Server running at http://localhost:${port}`);
 });
+
+const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS) || 10000;
+let isShuttingDown = false;
+
+const gracefulShutdown = async (signal: string) => {
+  if (isShuttingDown) {
+    logger.warn({ signal }, 'Shutdown already in progress');
+    return;
+  }
+  isShuttingDown = true;
+  logger.info({ signal }, 'Graceful shutdown initiated');
+
+  const forceExit = setTimeout(() => {
+    logger.fatal('Graceful shutdown timed out, forcing exit');
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExit.unref();
+
+  try {
+    await new Promise<void>((resolve) => {
+      io.close(() => {
+        logger.info('Socket.IO server closed');
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => {
+        if (err) {
+          logger.error({ err }, 'Error closing HTTP server');
+          return reject(err);
+        }
+        logger.info('HTTP server closed');
+        resolve();
+      });
+    });
+
+    await mongoose.connection.close(false);
+    logger.info('MongoDB connection closed');
+
+    clearTimeout(forceExit);
+    logger.info('Graceful shutdown complete');
+    process.exit(0);
+  } catch (err) {
+    logger.error({ err }, 'Error during graceful shutdown');
+    clearTimeout(forceExit);
+    process.exit(1);
+  }
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

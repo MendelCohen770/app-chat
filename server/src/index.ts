@@ -19,7 +19,7 @@ import mongoose from 'mongoose';
 
 const app = express();
 dotenv.config();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 
 DBconnect();

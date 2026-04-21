@@ -1,26 +1,22 @@
 ///<reference path="../utils/custom.d.ts" />
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken'
-import { genericResponse } from '../utils/helper';
+import jwt from 'jsonwebtoken';
 import { Role } from '../models/user.schema';
+import { AppError } from './errorHandler';
 
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     try {
         const token = req.cookies?.token;
         if (!token) {
-            const response = genericResponse(false, 'Authentication failed', null, 'No token provided', null);
-            res.status(401).json(response);
-            return;
-        };
+            return next(new AppError(401, 'Authentication failed', 'No token provided'));
+        }
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
         req.user = decoded;
         next();
     } catch (err) {
-        const response = genericResponse(false, 'Authentication failed', null, 'Invalid token', null);
-        res.status(401).json(response);
-    };
-
+        next(new AppError(401, 'Authentication failed', 'Invalid token'));
+    }
 };
 
 export const checkRole = (roles: Role[]) => {
@@ -28,9 +24,7 @@ export const checkRole = (roles: Role[]) => {
         const role = req.user?.role;
 
         if (role === undefined || role === null || !roles.includes(role)) {
-            const response = genericResponse(false, 'Forbidden', null, 'You do not have the required role', null);
-            res.status(403).json(response);
-            return;
+            return next(new AppError(403, 'Forbidden', 'You do not have the required role'));
         }
 
         next();

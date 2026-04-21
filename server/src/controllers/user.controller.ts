@@ -2,129 +2,104 @@ import User from '../models/user.schema'
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { genericResponse, createToken, generateOTP, sendEmail, saveOTPToDB } from '../utils/helper';
-import { error, log } from 'console';
 import OTPModel from '../models/otp.schema';
 import { OAuth2Client } from 'google-auth-library';
 import path from 'path';
 import fs from 'fs';
+import { asyncHandler, AppError } from '../middlewares/errorHandler';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+const phoneRegex = /^[0-9+\-]{9,14}$/;
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
-const signUp = async (req : Request, res : Response) => {
-    const {username, email, password, phone} = req.body;
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== 'production',
+    sameSite: 'none' as const,
+    maxAge: 60 * 60 * 3000,
+};
 
-    if(!username || !email || !password || !phone){
-        const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
-        res.status(400).json(response);
-        return;
+const safeUnlink = (p?: string) => {
+    if (!p) return;
+    try { fs.unlinkSync(p); } catch (_) { /* ignore */ }
+};
+
+
+const signUp = asyncHandler(async (req: Request, res: Response) => {
+    const { username, email, password, phone } = req.body;
+
+    if (!username || !email || !password || !phone) {
+        throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
+    }
+    if (!phoneRegex.test(phone)) {
+        throw new AppError(400, 'Invalid phone number');
+    }
+    if (!emailRegex.test(email)) {
+        throw new AppError(400, 'Invalid email address');
+    }
+    if (!passwordRegex.test(password)) {
+        throw new AppError(400, 'Invalid password');
     }
 
-    const phoneRegex = /^[0-9+\-]{9,14}$/;
-    if(!phoneRegex.test(phone)){
-        const response = genericResponse(false, 'Invalid phone number', null, null, null);
-        res.status(400).json(response);
-        return;
+    const isUser = await User.findOne({ email });
+    if (isUser) {
+        throw new AppError(400, 'User already exists');
     }
 
-    const emailRegex =/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if(!emailRegex.test(email)){
-        const response = genericResponse(false, 'Invalid email address', null, null, null);
-        res.status(400).json(response);
-        return;
-    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, email, password: hashedPassword, phone });
+    await user.validate();
+    await user.save();
+    user.password = '*****';
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
-    if(!passwordRegex.test(password)){
-        const response = genericResponse(false, 'Invalid password', null, null, null);
-        res.status(400).json(response);
-        return;
-    }
-    try{
-        const isUser = await User.findOne({email});
-        if(isUser){
-            const response = genericResponse(false, 'User already exists', null, null, null);
-            res.status(400).json(response);
-            return;
-        }
-        let newPassword: string = await bcrypt.hash(password, 10);
-        
-        let user = new User({username, email, password: newPassword, phone});
-        await user.validate();
-        console.log("Validation passed!---------------------------");
-        await user.save();
-        user.password = '*****';
-        const response = genericResponse(true, 'User created successfully', null, null, user);
-        res.status(200).json(response);
-    }catch(err){
-        console.log(err);
-        const response = genericResponse(false, 'Error creating user', null, err instanceof Error ? err.message : 'Unknown error', null);
-        res.status(500).json(response);
-    }
-}
+    res.status(200).json(genericResponse(true, 'User created successfully', null, null, user));
+});
 
-const updateUser = async (req : Request, res : Response) => {
-    const {username, email, phone, profileIcon} = req.body;
+
+const updateUser = asyncHandler(async (req: Request, res: Response) => {
+    const { username, email, phone, profileIcon } = req.body;
     const authUserId = req.user?.id;
 
-    if(!authUserId){
-        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
-        res.status(401).json(response);
-        return;
+    if (!authUserId) {
+        throw new AppError(401, 'Authentication failed', 'No authenticated user');
+    }
+    if (!username || !email || !phone) {
+        throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
+    }
+    if (!phoneRegex.test(phone)) {
+        throw new AppError(400, 'Invalid phone number');
+    }
+    if (!emailRegex.test(email)) {
+        throw new AppError(400, 'Invalid email address');
     }
 
-    if(!username || !email || !phone){
-        const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
-        res.status(400).json(response);
-        return;
-    }
-    const phoneRegex = /^[0-9+\-]{9,14}$/;
-    if(!phoneRegex.test(phone)){
-        const response = genericResponse(false, 'Invalid phone number', null, null, null);
-        res.status(400).json(response);
-        return;
+    const duplicate = await User.findOne({
+        _id: { $ne: authUserId },
+        $or: [{ email }, { username }, { phone }],
+    });
+    if (duplicate) {
+        let displayMessage = 'User with those details already exists';
+        if (duplicate.email === email) displayMessage = 'Email is already taken';
+        else if (duplicate.username === username) displayMessage = 'Username is already taken';
+        else if (duplicate.phone === phone) displayMessage = 'Phone number is already taken';
+        throw new AppError(409, displayMessage);
     }
 
-    const emailRegex =/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if(!emailRegex.test(email)){
-        const response = genericResponse(false, 'Invalid email address', null, null, null);
-        res.status(400).json(response);
-        return;
+    const update: Record<string, unknown> = { username, email, phone };
+    if (typeof profileIcon === 'string') {
+        update.profileIcon = profileIcon;
     }
-    try{
-        const duplicate = await User.findOne({
-            _id: { $ne: authUserId },
-            $or: [{ email }, { username }, { phone }],
-        });
-        if(duplicate){
-            let displayMessage = 'User with those details already exists';
-            if(duplicate.email === email) displayMessage = 'Email is already taken';
-            else if(duplicate.username === username) displayMessage = 'Username is already taken';
-            else if(duplicate.phone === phone) displayMessage = 'Phone number is already taken';
-            const response = genericResponse(false, displayMessage, null, null, null);
-            res.status(409).json(response);
-            return;
-        }
 
-        const update: Record<string, unknown> = { username, email, phone };
-        if(typeof profileIcon === 'string'){
-            update.profileIcon = profileIcon;
-        }
-
-        const user = await User.findByIdAndUpdate(authUserId, update, {new: true}).select('-password');
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        }
-        const response = genericResponse(true, 'User updated successfully', null, null, user);
-        res.status(200).json(response);
-    }catch(err){
-        const response = genericResponse(false, 'Error updating user', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+    const user = await User.findByIdAndUpdate(authUserId, update, { new: true }).select('-password');
+    if (!user) {
+        throw new AppError(404, 'User not found');
     }
-    
-}
+
+    res.status(200).json(genericResponse(true, 'User updated successfully', null, null, user));
+});
+
 
 const profileIconsDir = path.join(__dirname, '..', 'uploads', 'profile');
 try {
@@ -133,30 +108,21 @@ try {
     console.error('Failed to ensure profile uploads directory:', err);
 }
 
-const uploadProfileIcon = async (req : Request, res : Response) => {
-    const authUserId = req.user?.id;
+const uploadProfileIcon = asyncHandler(async (req: Request, res: Response) => {
     const file = (req as any).file as Express.Multer.File | undefined;
 
-    if(!authUserId){
-        if(file){ try { fs.unlinkSync(file.path); } catch (_) {} }
-        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
-        res.status(401).json(response);
-        return;
-    }
+    try {
+        const authUserId = req.user?.id;
+        if (!authUserId) {
+            throw new AppError(401, 'Authentication failed', 'No authenticated user');
+        }
+        if (!file) {
+            throw new AppError(400, 'No image uploaded', 'profileIcon field is missing');
+        }
 
-    if(!file){
-        const response = genericResponse(false, 'No image uploaded', null, 'profileIcon field is missing', null);
-        res.status(400).json(response);
-        return;
-    }
-
-    try{
         const user = await User.findById(authUserId);
-        if(!user){
-            try { fs.unlinkSync(file.path); } catch (_) {}
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
+        if (!user) {
+            throw new AppError(404, 'User not found');
         }
 
         const previousIcon = user.profileIcon;
@@ -164,396 +130,286 @@ const uploadProfileIcon = async (req : Request, res : Response) => {
         user.profileIcon = mediaUrl;
         await user.save();
 
-        if(previousIcon && previousIcon.startsWith('/uploads/profile/')){
+        if (previousIcon && previousIcon.startsWith('/uploads/profile/')) {
             const previousPath = path.join(__dirname, '..', previousIcon.replace(/^\//, ''));
             fs.unlink(previousPath, () => { /* ignore missing file */ });
         }
 
         const safeUser = user.toObject();
-        if(safeUser.password){
+        if (safeUser.password) {
             safeUser.password = '*****';
         }
-        const response = genericResponse(true, 'Profile picture updated', null, null, safeUser);
-        res.status(200).json(response);
-    }catch(err){
-        try { fs.unlinkSync(file.path); } catch (_) {}
-        const response = genericResponse(false, 'Error uploading profile picture', null, err instanceof Error ? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+        res.status(200).json(genericResponse(true, 'Profile picture updated', null, null, safeUser));
+    } catch (err) {
+        safeUnlink(file?.path);
+        throw err;
     }
-}
+});
 
-const getAllUsers = async (req : Request, res : Response) => {
-    try{
-        const users = await User.find().select('-password').limit(100);
-        const response = genericResponse(true, 'Users retrieved successfully', null, null, users);
-        res.status(200).json(response);
-    }catch(err){
-        const response = genericResponse(false, 'Error retrieving users', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+
+const getAllUsers = asyncHandler(async (_req: Request, res: Response) => {
+    const users = await User.find().select('-password').limit(100);
+    res.status(200).json(genericResponse(true, 'Users retrieved successfully', null, null, users));
+});
+
+
+const searchUser = asyncHandler(async (req: Request, res: Response) => {
+    const { username } = req.query;
+
+    if (!username) {
+        throw new AppError(400, 'Please provide a username', 'Username field is missing');
     }
-}
 
-const searchUser = async (req : Request, res : Response) => {
-    const {username} = req.query;
-
-    if(!username){
-        const response = genericResponse(false, 'Please provide a username', null, 'Username field is missing', null);
-        res.status(400).json(response);
-        return;
+    const users = await User.find({ username: { $regex: username, $options: 'i' } });
+    if (users.length === 0) {
+        throw new AppError(404, 'Users not found');
     }
-    try{
-        const users = await User.find({ username: { $regex: username, $options: 'i' },});
-        if(users.length === 0){
-            const response = genericResponse(false, 'Users not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        }
-        users.forEach(user => user.password = '*****')
-        const response = genericResponse(true, 'Users found successfully', null, null, users);
-        res.status(200).json(response);
+    users.forEach(user => (user.password = '*****'));
 
-    }catch(err){
-        const response = genericResponse(false, 'Error searching user', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+    res.status(200).json(genericResponse(true, 'Users found successfully', null, null, users));
+});
+
+
+const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+    const { _id } = req.body;
+    if (!_id) {
+        throw new AppError(400, 'Please provide a user ID', 'User ID field is missing');
     }
-}
 
-const deleteUser = async (req : Request, res : Response) => {
-    const {_id} = req.body;
-    if(!_id){
-        const response = genericResponse(false, 'Please provide a user ID', null, 'User ID field is missing', null);
-        res.status(400).json(response);
-        return;
+    const user = await User.findByIdAndDelete(_id);
+    if (!user) {
+        throw new AppError(404, 'User not found');
     }
-    try{
-        const user = await User.findByIdAndDelete(_id);
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        }
-        const response = genericResponse(true, 'User deleted', null, null, user);
-        res.status(200).json(response);
 
-    }catch(err){
-        const response = genericResponse(false, 'Error deleting', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
-    }
-};
+    res.status(200).json(genericResponse(true, 'User deleted', null, null, user));
+});
 
 
-const deleteSelfAccount = async (req : Request, res : Response) => {
-    const {password} = req.body;
+const deleteSelfAccount = asyncHandler(async (req: Request, res: Response) => {
+    const { password } = req.body;
     const userId = req.user?.id;
-    if(!password){
-        const response = genericResponse(false, 'Please provide your password', null, 'Password field is missing', null);
-        res.status(400).json(response);
-        return;
-    };
-    try{
-        const user = await User.findById(userId);
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        };
-        if(!user.password){
-            const response = genericResponse(false, 'Cannot verify password for a Google-only account', null, null, null);
-            res.status(400).json(response);
-            return;
-        };
-        const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMatch){
-            const response = genericResponse(false, 'Invalid credentials', null, null, null);
-            res.status(401).json(response);
-            return;
-        }
 
-        const deleteUser = await User.findByIdAndDelete(userId);
-        if(!deleteUser){
-            const response = genericResponse(false, 'Failed to delete account', null, null, null);
-            res.status(404).json(response);
-            return;
-        }
-        const response = genericResponse(true, 'Account deleted successfully', null, null, null);
-        res.status(200).json(response);
-    }catch(err){
-        const response = genericResponse(false, 'Error deleting account', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+    if (!password) {
+        throw new AppError(400, 'Please provide your password', 'Password field is missing');
     }
 
-};
-
-const changePassword = async (req : Request, res : Response) => {
-    const {password, newPassword} = req.body;
-     const userId = req.user?.id;
-    if(!password || !newPassword){
-        const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
-        res.status(400).json(response);
-        return;
-    };
-    try{
-        const user = await User.findById(userId);
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        };
-        if(!user.password){
-            const response = genericResponse(false, 'Cannot change password for a Google-only account', null, null, null);
-            res.status(400).json(response);
-            return;
-        };
-        const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMatch){
-            const response = genericResponse(false, 'Invalid credentials', null, null, null);
-            res.status(401).json(response);
-            return;
-        };
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
-        await user.save();
-
-        user.password = '*****';
-        const response = genericResponse(true, 'Password changed successfully', null, null, user);
-        res.status(200).json(response); 
-
-    }catch(err){
-        const response = genericResponse(false, 'Error changing password', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new AppError(404, 'User not found');
     }
-};
+    if (!user.password) {
+        throw new AppError(400, 'Cannot verify password for a Google-only account');
+    }
 
-const login = async (req : Request, res : Response) => {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        throw new AppError(401, 'Invalid credentials');
+    }
+
+    const deleted = await User.findByIdAndDelete(userId);
+    if (!deleted) {
+        throw new AppError(404, 'Failed to delete account');
+    }
+
+    res.status(200).json(genericResponse(true, 'Account deleted successfully', null, null, null));
+});
+
+
+const changePassword = asyncHandler(async (req: Request, res: Response) => {
+    const { password, newPassword } = req.body;
+    const userId = req.user?.id;
+
+    if (!password || !newPassword) {
+        throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new AppError(404, 'User not found');
+    }
+    if (!user.password) {
+        throw new AppError(400, 'Cannot change password for a Google-only account');
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        throw new AppError(401, 'Invalid credentials');
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    user.password = '*****';
+    res.status(200).json(genericResponse(true, 'Password changed successfully', null, null, user));
+});
+
+
+const login = asyncHandler(async (req: Request, res: Response) => {
     const { username, password } = req.body;
-    if(!username || !password){
-        const response = genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
-        res.status(400).json(response);
-        return;
-    };
-    try{
-        const user = await User.findOne({username});
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        };
-        if(!user.password){
-            const response = genericResponse(false, 'Please login with Google', null, 'Account has no password set', null);
-            res.status(401).json(response);
-            return;
-        };
-        const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMatch){
-            const response = genericResponse(false, 'Invalid credentials', null, null, null);
-            res.status(401).json(response);
-            return;
-        };
-        const token = createToken(user);
-        res.cookie('token',token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV !== 'production',
-            sameSite: 'none',
-            maxAge: 60 * 60 * 3000,
-        });
-        user.password = '*****';
-        const response = genericResponse(true, 'Logged in successfully', null, null, user);
-        res.status(200).json(response);
-
-    }catch(err){
-        const response = genericResponse(false, 'Error logging in', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+    if (!username || !password) {
+        throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
     }
-};
 
-const logout = async (req : Request, res : Response) => {
-    try{
-        res.clearCookie('token', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none',
-        })
-        
-        const response = genericResponse(true, 'Logged out successfully', null, null, null);
-        res.status(200).json(response);
-
-    }catch(err){
-        const response = genericResponse(false, 'Error to logout', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+    const user = await User.findOne({ username });
+    if (!user) {
+        throw new AppError(404, 'User not found');
     }
-};
+    if (!user.password) {
+        throw new AppError(401, 'Please login with Google', 'Account has no password set');
+    }
 
-const getUserDetails  = async (req : Request, res : Response) => {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        throw new AppError(401, 'Invalid credentials');
+    }
+
+    const token = createToken(user);
+    res.cookie('token', token, cookieOptions);
+    user.password = '*****';
+
+    res.status(200).json(genericResponse(true, 'Logged in successfully', null, null, user));
+});
+
+
+const logout = asyncHandler(async (_req: Request, res: Response) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'none',
+    });
+    res.status(200).json(genericResponse(true, 'Logged out successfully', null, null, null));
+});
+
+
+const getUserDetails = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
-    if(!userId){
-        const response = genericResponse(false, 'User not found', null, null, null);
-        res.status(404).json(response);
-        return;
-    };
+    if (!userId) {
+        throw new AppError(404, 'User not found');
+    }
 
-    try{
-        const user = await User.findById(userId).select('-password');
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        }
-        const response = genericResponse(true, 'User details retrieved successfully', null, null, user);
-        res.status(200).json(response); 
-    }catch(err){
-        const response = genericResponse(false, 'Error to getUserDetails', null, err instanceof Error? err.message : 'Unknown error', null);
-        res.status(500).json(response);
-    };
-};
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+        throw new AppError(404, 'User not found');
+    }
 
-const otpService = async (req : Request, res : Response) => {
-    const {email} = req.body;
-    if(!email){
-        const response = genericResponse(false, 'Please provide your email', null, 'Email field is missing', null);
-        res.status(400).json(response);
-        return;
-    };
-    try{
-        const user = await User.findOne({email});
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        };
-        const otp = generateOTP();
+    res.status(200).json(genericResponse(true, 'User details retrieved successfully', null, null, user));
+});
 
-       await sendEmail(email, otp);
-       await saveOTPToDB(email, otp);
 
-       const response = genericResponse(true, 'OTP send to email', null, null, otp);
-       res.status(200).json(response);
-    }catch(err){
-        const response = genericResponse(false, 'Failed to send OTP', null, error instanceof Error ? error.message : 'Unknown error', null);
-        res.status(500).json(response);
-    };
-};
+const otpService = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    if (!email) {
+        throw new AppError(400, 'Please provide your email', 'Email field is missing');
+    }
 
-const verifyOTP = async (req : Request, res : Response) => {
-    const {email, otp} = req.body;
-    if(!email || !otp){
-        const response = genericResponse(false, 'Please provide your email and OTP', null, 'Email or OTP field is missing', null);
-        res.status(400).json(response);
-        return;
-    };
-    try{
-        const otpRecord = await OTPModel.findOne({email, otp});
-        if(!otpRecord){
-            const response = genericResponse(false, 'Invalid OTP', null, null, null);
-            res.status(401).json(response);
-            return;
-        };
-        if(Date.now() > otpRecord.expirationDate.getTime()){
-            await OTPModel.deleteOne({email, otp});
-            const response = genericResponse(false, 'OTP expired', null, null, null);
-            res.status(401).json(response);
-            return;
-        };
-        const user = await User.findOne({email});
-        if(!user){
-            const response = genericResponse(false, 'User not found', null, null, null);
-            res.status(404).json(response);
-            return;
-        };
-        const token = createToken(user);
-        res.cookie('token',token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV !== 'production',
-            sameSite: 'none',
-            maxAge: 60 * 60 * 3000,
-        });
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new AppError(404, 'User not found');
+    }
 
-        user.password = "*****";
-        await OTPModel.deleteOne({email, otp});
-        const response = genericResponse(true, 'OTP verified', null, null, user);
-        res.status(200).json(response);
-    }catch(err){
-        const response = genericResponse(false, 'Failed to verify OTP', null, error instanceof Error? error.message : 'Unknown error', null);
-        res.status(500).json(response);
-    };
-};
+    const otp = generateOTP();
+    await sendEmail(email, otp);
+    await saveOTPToDB(email, otp);
 
-const googleLogin = async (req : Request, res : Response) => {
+    res.status(200).json(genericResponse(true, 'OTP send to email', null, null, otp));
+});
+
+
+const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+        throw new AppError(400, 'Please provide your email and OTP', 'Email or OTP field is missing');
+    }
+
+    const otpRecord = await OTPModel.findOne({ email, otp });
+    if (!otpRecord) {
+        throw new AppError(401, 'Invalid OTP');
+    }
+    if (Date.now() > otpRecord.expirationDate.getTime()) {
+        await OTPModel.deleteOne({ email, otp });
+        throw new AppError(401, 'OTP expired');
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new AppError(404, 'User not found');
+    }
+
+    const token = createToken(user);
+    res.cookie('token', token, cookieOptions);
+
+    user.password = '*****';
+    await OTPModel.deleteOne({ email, otp });
+
+    res.status(200).json(genericResponse(true, 'OTP verified', null, null, user));
+});
+
+
+const googleLogin = asyncHandler(async (req: Request, res: Response) => {
     const { credential } = req.body;
-    if(!credential){
-        const response = genericResponse(false, 'Missing Google credential', null, 'credential field is missing', null);
-        res.status(400).json(response);
-        return;
+    if (!credential) {
+        throw new AppError(400, 'Missing Google credential', 'credential field is missing');
     }
-    if(!process.env.GOOGLE_CLIENT_ID){
-        const response = genericResponse(false, 'Google login is not configured', null, 'GOOGLE_CLIENT_ID env var is missing', null);
-        res.status(500).json(response);
-        return;
+    if (!process.env.GOOGLE_CLIENT_ID) {
+        throw new AppError(500, 'Google login is not configured', 'GOOGLE_CLIENT_ID env var is missing');
     }
-    try{
+
+    let payload;
+    try {
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
-        const payload = ticket.getPayload();
-        if(!payload || !payload.email || !payload.sub){
-            const response = genericResponse(false, 'Invalid Google token', null, 'Token payload is missing required fields', null);
-            res.status(401).json(response);
-            return;
-        }
-        if(payload.email_verified === false){
-            const response = genericResponse(false, 'Google email is not verified', null, null, null);
-            res.status(401).json(response);
-            return;
-        }
-
-        const email = payload.email;
-        const googleId = payload.sub;
-        const picture = payload.picture || '';
-        const name = payload.name || email.split('@')[0];
-
-        let user = await User.findOne({ $or: [{ googleId }, { email }] });
-        if(!user){
-            let baseUsername = (name || email.split('@')[0]).replace(/\s+/g, '').slice(0, 20) || 'user';
-            let username = baseUsername;
-            let counter = 0;
-            while(await User.findOne({ username })){
-                counter += 1;
-                username = `${baseUsername}${counter}`;
-            }
-            user = new User({
-                username,
-                email,
-                googleId,
-                profileIcon: picture,
-            });
-            await user.save();
-        } else if(!user.googleId){
-            user.googleId = googleId;
-            if(picture && !user.profileIcon){
-                user.profileIcon = picture;
-            }
-            await user.save();
-        }
-
-        const token = createToken(user);
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV !== 'production',
-            sameSite: 'none',
-            maxAge: 60 * 60 * 3000,
-        });
-
-        const safeUser = user.toObject();
-        if(safeUser.password){
-            safeUser.password = '*****';
-        }
-        const response = genericResponse(true, 'Logged in successfully with Google', null, null, safeUser);
-        res.status(200).json(response);
-    }catch(err){
-        console.log('Google login error:', err);
-        const response = genericResponse(false, 'Failed to verify Google token', null, err instanceof Error ? err.message : 'Unknown error', null);
-        res.status(401).json(response);
+        payload = ticket.getPayload();
+    } catch (err) {
+        throw new AppError(401, 'Failed to verify Google token', err instanceof Error ? err.message : null);
     }
-};
 
-export {signUp, updateUser, uploadProfileIcon, getAllUsers, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP, googleLogin};
+    if (!payload || !payload.email || !payload.sub) {
+        throw new AppError(401, 'Invalid Google token', 'Token payload is missing required fields');
+    }
+    if (payload.email_verified === false) {
+        throw new AppError(401, 'Google email is not verified');
+    }
+
+    const email = payload.email;
+    const googleId = payload.sub;
+    const picture = payload.picture || '';
+    const name = payload.name || email.split('@')[0];
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+    if (!user) {
+        let baseUsername = (name || email.split('@')[0]).replace(/\s+/g, '').slice(0, 20) || 'user';
+        let username = baseUsername;
+        let counter = 0;
+        while (await User.findOne({ username })) {
+            counter += 1;
+            username = `${baseUsername}${counter}`;
+        }
+        user = new User({
+            username,
+            email,
+            googleId,
+            profileIcon: picture,
+        });
+        await user.save();
+    } else if (!user.googleId) {
+        user.googleId = googleId;
+        if (picture && !user.profileIcon) {
+            user.profileIcon = picture;
+        }
+        await user.save();
+    }
+
+    const token = createToken(user);
+    res.cookie('token', token, cookieOptions);
+
+    const safeUser = user.toObject();
+    if (safeUser.password) {
+        safeUser.password = '*****';
+    }
+
+    res.status(200).json(genericResponse(true, 'Logged in successfully with Google', null, null, safeUser));
+});
+
+export { signUp, updateUser, uploadProfileIcon, getAllUsers, searchUser, deleteUser, login, deleteSelfAccount, changePassword, logout, getUserDetails, otpService, verifyOTP, googleLogin };

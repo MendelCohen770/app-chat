@@ -1,37 +1,23 @@
 import Message, { MessageType } from "../models/message.schema";
 import { getIO } from "../sockets/socket";
 import { Request, Response } from "express";
-import { genericResponse} from '../utils/helper';
+import { genericResponse } from '../utils/helper';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
+import { asyncHandler, AppError } from '../middlewares/errorHandler';
 
-const sendMessage = async (req: Request, res: Response) => {
-    const authUserId = req.user?.id;
-    if (!authUserId) {
-        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
-        res.status(401).json(response);
-        return;
-    }
+const safeUnlink = (p?: string) => {
+    if (!p) return;
+    try { fs.unlinkSync(p); } catch (_) { /* ignore */ }
+};
 
-    const { receiver, type, content, media } = req.body;
-    if( !receiver || !type ){
-        const response =  genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
-        res.status(400).json(response);
-        return;
-    }
-    try{
-        const message = new Message({
-            sender: authUserId,
-            receiver,
-            type,
-            content,
-            media
-        });
-        await message.save();
-        try {
-            const io = getIO();
-            const payload = {
+const emitNewMessage = (message: any) => {
+    try {
+        const io = getIO();
+        io.to(String(message.sender))
+            .to(String(message.receiver))
+            .emit('newMessage', {
                 _id: message._id,
                 senderId: String(message.sender),
                 receiverId: String(message.receiver),
@@ -39,58 +25,60 @@ const sendMessage = async (req: Request, res: Response) => {
                 content: message.content,
                 media: message.media,
                 createdAt: message.createdAt,
-            };
-            io.to(String(message.sender)).to(String(message.receiver)).emit('newMessage', payload);
-        } catch (err) {
-            // If io not initialized, just skip emitting
-        }
-        const response = genericResponse(true, 'Message sent successfully', null, null, message);
-        res.status(200).json(response);
-
-    }catch(err){
-        console.log(err);
-        const response = genericResponse(false, 'Error sending message', null,  err instanceof Error ? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+            });
+    } catch (_) {
+        // socket not ready / not initialised – safe to skip
     }
-}
+};
 
-const getMessages = async (req: Request, res: Response) => {
+const sendMessage = asyncHandler(async (req: Request, res: Response) => {
     const authUserId = req.user?.id;
     if (!authUserId) {
-        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
-        res.status(401).json(response);
-        return;
+        throw new AppError(401, 'Authentication failed', 'No authenticated user');
+    }
+
+    const { receiver, type, content, media } = req.body;
+    if (!receiver || !type) {
+        throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
+    }
+
+    const message = new Message({
+        sender: authUserId,
+        receiver,
+        type,
+        content,
+        media,
+    });
+    await message.save();
+    emitNewMessage(message);
+
+    res.status(200).json(genericResponse(true, 'Message sent successfully', null, null, message));
+});
+
+const getMessages = asyncHandler(async (req: Request, res: Response) => {
+    const authUserId = req.user?.id;
+    if (!authUserId) {
+        throw new AppError(401, 'Authentication failed', 'No authenticated user');
     }
 
     const { sender, receiver } = req.query;
-    if( !sender || !receiver ){
-        const response =  genericResponse(false, 'Please provide all the required fields', null, 'One of the fields (or more) is missing', null);
-        res.status(400).json(response);
-        return;
+    if (!sender || !receiver) {
+        throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
     }
 
     if (String(sender) !== String(authUserId) && String(receiver) !== String(authUserId)) {
-        const response = genericResponse(false, 'Forbidden', null, 'You are not a participant of this conversation', null);
-        res.status(403).json(response);
-        return;
+        throw new AppError(403, 'Forbidden', 'You are not a participant of this conversation');
     }
 
-    try{
-        const messages = await Message.find({
-            $or: [
-                { sender, receiver },
-                { sender: receiver, receiver: sender }
-            ]
-        }).sort({ createdAt: -1 });
-        const response = genericResponse(true, 'Messages retrieved successfully', null, null, messages);
-        res.status(200).json(response);
+    const messages = await Message.find({
+        $or: [
+            { sender, receiver },
+            { sender: receiver, receiver: sender },
+        ],
+    }).sort({ createdAt: -1 });
 
-    }catch(err){
-        console.log(err);
-        const response = genericResponse(false, 'Error getting messages', null,  err instanceof Error ? err.message : 'Unknown error', null);
-        res.status(500).json(response);
-    }
-}
+    res.status(200).json(genericResponse(true, 'Messages retrieved successfully', null, null, messages));
+});
 
 const audioUploadsDir = path.join(__dirname, '..', 'uploads', 'audio');
 try {
@@ -132,33 +120,23 @@ export const voiceUpload = multer({
     },
 }).single('audio');
 
-const sendVoiceMessage = async (req: Request, res: Response) => {
-    const authUserId = req.user?.id;
-    if (!authUserId) {
-        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
-        res.status(401).json(response);
-        return;
-    }
-
-    const { receiver } = req.body;
+const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
     const file = (req as any).file as Express.Multer.File | undefined;
 
-    if (!receiver) {
-        if (file) {
-            try { fs.unlinkSync(file.path); } catch (_) {}
-        }
-        const response = genericResponse(false, 'Please provide all the required fields', null, 'receiver field is missing', null);
-        res.status(400).json(response);
-        return;
-    }
-
-    if (!file) {
-        const response = genericResponse(false, 'No audio file uploaded', null, 'audio field is missing', null);
-        res.status(400).json(response);
-        return;
-    }
-
     try {
+        const authUserId = req.user?.id;
+        if (!authUserId) {
+            throw new AppError(401, 'Authentication failed', 'No authenticated user');
+        }
+
+        const { receiver } = req.body;
+        if (!receiver) {
+            throw new AppError(400, 'Please provide all the required fields', 'receiver field is missing');
+        }
+        if (!file) {
+            throw new AppError(400, 'No audio file uploaded', 'audio field is missing');
+        }
+
         const mediaUrl = `/uploads/audio/${file.filename}`;
         const message = new Message({
             sender: authUserId,
@@ -168,32 +146,14 @@ const sendVoiceMessage = async (req: Request, res: Response) => {
             media: mediaUrl,
         });
         await message.save();
+        emitNewMessage(message);
 
-        try {
-            const io = getIO();
-            const payload = {
-                _id: message._id,
-                senderId: String(message.sender),
-                receiverId: String(message.receiver),
-                type: message.type,
-                content: message.content,
-                media: message.media,
-                createdAt: message.createdAt,
-            };
-            io.to(String(message.sender)).to(String(message.receiver)).emit('newMessage', payload);
-        } catch (_) {
-            // socket not ready, skip
-        }
-
-        const response = genericResponse(true, 'Voice message sent successfully', null, null, message);
-        res.status(200).json(response);
+        res.status(200).json(genericResponse(true, 'Voice message sent successfully', null, null, message));
     } catch (err) {
-        console.log(err);
-        try { fs.unlinkSync(file.path); } catch (_) {}
-        const response = genericResponse(false, 'Error sending voice message', null, err instanceof Error ? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+        safeUnlink(file?.path);
+        throw err;
     }
-};
+});
 
 const inferMediaType = (mime: string | undefined, explicit: string | undefined): MessageType => {
     const normalized = (explicit || '').toLowerCase();
@@ -207,39 +167,23 @@ const inferMediaType = (mime: string | undefined, explicit: string | undefined):
     return MessageType.file;
 };
 
-const sendMediaMessage = async (req: Request, res: Response) => {
-    const authUserId = req.user?.id;
+const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
     const file = (req as any).file as Express.Multer.File | undefined;
 
-    const cleanup = () => {
-        if (file) {
-            try { fs.unlinkSync(file.path); } catch (_) {}
-        }
-    };
-
-    if (!authUserId) {
-        cleanup();
-        const response = genericResponse(false, 'Authentication failed', null, 'No authenticated user', null);
-        res.status(401).json(response);
-        return;
-    }
-
-    const { receiver, type, content } = req.body as { receiver?: string; type?: string; content?: string };
-
-    if (!receiver) {
-        cleanup();
-        const response = genericResponse(false, 'Please provide all the required fields', null, 'receiver field is missing', null);
-        res.status(400).json(response);
-        return;
-    }
-
-    if (!file) {
-        const response = genericResponse(false, 'No file uploaded', null, 'media field is missing', null);
-        res.status(400).json(response);
-        return;
-    }
-
     try {
+        const authUserId = req.user?.id;
+        if (!authUserId) {
+            throw new AppError(401, 'Authentication failed', 'No authenticated user');
+        }
+
+        const { receiver, type, content } = req.body as { receiver?: string; type?: string; content?: string };
+        if (!receiver) {
+            throw new AppError(400, 'Please provide all the required fields', 'receiver field is missing');
+        }
+        if (!file) {
+            throw new AppError(400, 'No file uploaded', 'media field is missing');
+        }
+
         const resolvedType = inferMediaType(file.mimetype, type);
         const mediaUrl = `/uploads/media/${file.filename}`;
         const message = new Message({
@@ -250,33 +194,13 @@ const sendMediaMessage = async (req: Request, res: Response) => {
             media: mediaUrl,
         });
         await message.save();
+        emitNewMessage(message);
 
-        try {
-            const io = getIO();
-            const payload = {
-                _id: message._id,
-                senderId: String(message.sender),
-                receiverId: String(message.receiver),
-                type: message.type,
-                content: message.content,
-                media: message.media,
-                createdAt: message.createdAt,
-            };
-            io.to(String(message.sender)).to(String(message.receiver)).emit('newMessage', payload);
-        } catch (_) {
-            // socket not ready, skip
-        }
-
-        const response = genericResponse(true, 'Media message sent successfully', null, null, message);
-        res.status(200).json(response);
+        res.status(200).json(genericResponse(true, 'Media message sent successfully', null, null, message));
     } catch (err) {
-        console.log(err);
-        cleanup();
-        const response = genericResponse(false, 'Error sending media message', null, err instanceof Error ? err.message : 'Unknown error', null);
-        res.status(500).json(response);
+        safeUnlink(file?.path);
+        throw err;
     }
-};
+});
 
 export { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage };
-
-

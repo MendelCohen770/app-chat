@@ -10,6 +10,7 @@ import healthRoute from './routes/health.route';
 import { Server } from 'socket.io';
 import http from 'http';
 import setUpSocket, { setIO } from './sockets/socket';
+import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 
 
 
@@ -40,9 +41,14 @@ app.use('/message', messageRoute);
 app.use('/', healthRoute);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-app.get('/', (req : Request , res : Response) => {
-  res.send('Hello, World!');
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
 });
 
 server.listen(port, () => {

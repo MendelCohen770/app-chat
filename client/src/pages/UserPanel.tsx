@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { IoClose } from 'react-icons/io5';
 import { RxHamburgerMenu } from 'react-icons/rx';
 import { LuLogOut, LuUser } from 'react-icons/lu';
@@ -10,20 +10,38 @@ import { useChat } from '../context/useChat';
 import { useUser } from '../context/useUser';
 import { usePresence } from '../context/usePresence';
 import { IUser } from '../models/user';
-import { useAsync } from '../hooks/useAsync';
 import { LoadingState, EmptyState, ErrorState } from '../components/ui/States';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
 import { logoutUser, resolveMediaUrl } from '../hooks/UseUser';
 
 const DEFAULT_AVATAR = 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg';
+const USERS_PAGE_SIZE = 20;
 
-const fetchUsers = async (): Promise<IUser[]> => {
+type UsersPage = {
+  items: IUser[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+};
+
+const fetchUsersPage = async (page: number, limit: number): Promise<UsersPage> => {
   const baseUrl = (import.meta as any)?.env?.VITE_SERVER_URL || 'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/user/getAllUsers`, { credentials: 'include' });
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const res = await fetch(`${baseUrl}/user/getAllUsers?${params.toString()}`, {
+    credentials: 'include',
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
   if (!json?.isSuccessful || !json?.data) throw new Error(json?.displayMessage || 'Failed');
-  return json.data as IUser[];
+  const data = json.data;
+  return {
+    items: Array.isArray(data.items) ? (data.items as IUser[]) : [],
+    total: Number.isFinite(data.total) ? data.total : 0,
+    page: Number.isFinite(data.page) ? data.page : page,
+    limit: Number.isFinite(data.limit) ? data.limit : limit,
+    hasMore: Boolean(data.hasMore),
+  };
 };
 
 const UserPanel = () => {
@@ -36,7 +54,49 @@ const UserPanel = () => {
   const isMenuOpen = Boolean(menuAnchor);
   const chatContext = useChat();
   const { isOnline } = usePresence();
-  const { data: users, isLoading, isError, refetch } = useAsync<IUser[]>(fetchUsers, { deps: [] });
+
+  const [users, setUsers] = useState<IUser[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('loading');
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const isLoading = status === 'loading';
+  const isError = status === 'error';
+
+  const loadFirstPage = useCallback(async () => {
+    setStatus('loading');
+    try {
+      const first = await fetchUsersPage(1, USERS_PAGE_SIZE);
+      setUsers(first.items);
+      setPage(first.page);
+      setHasMore(first.hasMore);
+      setStatus('success');
+    } catch {
+      setStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFirstPage();
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const next = await fetchUsersPage(page + 1, USERS_PAGE_SIZE);
+      setUsers((prev) => {
+        const existing = new Set(prev.map((u) => u._id));
+        return [...prev, ...next.items.filter((u) => !existing.has(u._id))];
+      });
+      setPage(next.page);
+      setHasMore(next.hasMore);
+    } catch {
+      toast.error(t('chat.contactsError'));
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, page, t]);
 
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>) => setMenuAnchor(e.currentTarget);
   const closeMenu = () => setMenuAnchor(null);
@@ -64,10 +124,9 @@ const UserPanel = () => {
   const selectedUser = chatContext?.selectedUser;
 
   const filtered = useMemo(() => {
-    const list = users || [];
     const q = searchInput.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((u) => u.username?.toLowerCase().includes(q));
+    if (!q) return users;
+    return users.filter((u) => u.username?.toLowerCase().includes(q));
   }, [users, searchInput]);
 
   // keyboard navigation between contacts
@@ -101,7 +160,7 @@ const UserPanel = () => {
 
   const renderList = () => {
     if (isLoading) return <LoadingState title={t('chat.loadingContacts')} />;
-    if (isError) return <ErrorState title={t('chat.contactsError')} onRetry={refetch} />;
+    if (isError) return <ErrorState title={t('chat.contactsError')} onRetry={loadFirstPage} />;
     if (!filtered.length) {
       return (
         <EmptyState
@@ -111,6 +170,7 @@ const UserPanel = () => {
     }
 
     return (
+      <>
       <ul
         ref={listRef}
         role="listbox"
@@ -180,6 +240,19 @@ const UserPanel = () => {
           );
         })}
       </ul>
+      {hasMore && !searchInput && (
+        <div className="flex justify-center p-2">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="px-4 py-2 text-sm rounded-md bg-slate-800 text-slate-100 hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          >
+            {isLoadingMore ? t('chat.loadingContacts') : t('chat.loadMoreContacts')}
+          </button>
+        </div>
+      )}
+      </>
     );
   };
 

@@ -148,9 +148,45 @@ const uploadProfileIcon = asyncHandler(async (req: Request, res: Response) => {
 });
 
 
-const getAllUsers = asyncHandler(async (_req: Request, res: Response) => {
-    const users = await User.find().select('-password').limit(100);
-    res.status(200).json(genericResponse(true, 'Users retrieved successfully', null, null, users));
+const USERS_DEFAULT_LIMIT = 20;
+const USERS_MAX_LIMIT = 100;
+
+const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+    const { page: pageRaw, limit: limitRaw } = req.query as {
+        page?: string;
+        limit?: string;
+    };
+
+    const parsedPage = parseInt(String(pageRaw ?? ''), 10);
+    const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+    const parsedLimit = parseInt(String(limitRaw ?? ''), 10);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, USERS_MAX_LIMIT)
+        : USERS_DEFAULT_LIMIT;
+
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+        User.find()
+            .select('-password')
+            .sort({ createdAt: -1, _id: -1 })
+            .skip(skip)
+            .limit(limit),
+        User.estimatedDocumentCount(),
+    ]);
+
+    const hasMore = skip + items.length < total;
+
+    res.status(200).json(
+        genericResponse(true, 'Users retrieved successfully', null, null, {
+            items,
+            total,
+            page,
+            limit,
+            hasMore,
+        }),
+    );
 });
 
 

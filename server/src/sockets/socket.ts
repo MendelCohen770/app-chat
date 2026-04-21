@@ -47,21 +47,6 @@ const setUpSocket = (io: Server) => {
                 socket.emit("presence:list", { userIds: getOnlineUserIds() });
             });
 
-            socket.on(
-                "sendMessage",
-                (data: {
-                    senderId: string;
-                    receiverId: string;
-                    content?: string;
-                    type?: string;
-                    media?: string;
-                }) => {
-                    const { senderId, receiverId } = data || {};
-                    if (!senderId || !receiverId) return;
-                    io.to(senderId).to(receiverId).emit("newMessage", data);
-                },
-            );
-
             socket.on("disconnect", (reason) => {
                 logger.info({ socketId: socket.id, reason }, "Socket disconnected");
 

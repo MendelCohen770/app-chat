@@ -56,13 +56,21 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
     res.status(200).json(genericResponse(true, 'Message sent successfully', null, null, message));
 });
 
+const MESSAGES_DEFAULT_LIMIT = 50;
+const MESSAGES_MAX_LIMIT = 100;
+
 const getMessages = asyncHandler(async (req: Request, res: Response) => {
     const authUserId = req.user?.id;
     if (!authUserId) {
         throw new AppError(401, 'Authentication failed', 'No authenticated user');
     }
 
-    const { sender, receiver } = req.query;
+    const { sender, receiver, before, limit: limitRaw } = req.query as {
+        sender?: string;
+        receiver?: string;
+        before?: string;
+        limit?: string;
+    };
     if (!sender || !receiver) {
         throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
     }
@@ -71,14 +79,46 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(403, 'Forbidden', 'You are not a participant of this conversation');
     }
 
-    const messages = await Message.find({
+    const parsedLimit = parseInt(String(limitRaw ?? ''), 10);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, MESSAGES_MAX_LIMIT)
+        : MESSAGES_DEFAULT_LIMIT;
+
+    const filter: Record<string, unknown> = {
         $or: [
             { sender, receiver },
             { sender: receiver, receiver: sender },
         ],
-    }).sort({ createdAt: -1 });
+    };
 
-    res.status(200).json(genericResponse(true, 'Messages retrieved successfully', null, null, messages));
+    if (before) {
+        const beforeDate = new Date(String(before));
+        if (Number.isNaN(beforeDate.getTime())) {
+            throw new AppError(400, 'Invalid cursor', '`before` must be a valid ISO date string');
+        }
+        filter.createdAt = { $lt: beforeDate };
+    }
+
+    // Fetch one extra document to detect whether another page exists.
+    const docs = await Message.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(limit + 1);
+
+    const hasMore = docs.length > limit;
+    const items = hasMore ? docs.slice(0, limit) : docs;
+    const oldest = items[items.length - 1];
+    const nextCursor = hasMore && oldest?.createdAt
+        ? oldest.createdAt.toISOString()
+        : null;
+
+    res.status(200).json(
+        genericResponse(true, 'Messages retrieved successfully', null, null, {
+            items,
+            nextCursor,
+            hasMore,
+            limit,
+        }),
+    );
 });
 
 const audioUploadsDir = path.join(__dirname, '..', 'uploads', 'audio');

@@ -1,11 +1,9 @@
 /**
  * Single source of truth for client-side environment configuration.
  *
- * Historically the codebase used two env vars (`VITE_API_BASE_URL` and
- * `VITE_SERVER_URL`) interchangeably, which caused subtle bugs when switching
- * between environments (e.g. only one was set in `.env`, so axios hit the
- * dev server but `fetch` hit localhost). All client code should read the
- * API origin from here instead of `import.meta.env` directly.
+ * All client code should read the API origin from here instead of
+ * `import.meta.env` directly so configuration stays consistent across HTTP
+ * and Socket.IO calls.
  */
 
 const DEFAULT_API_BASE_URL = 'http://localhost:3000';
@@ -15,10 +13,7 @@ const readEnv = (key: string): string | undefined => {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
 };
 
-const rawBaseUrl =
-    readEnv('VITE_API_BASE_URL') ??
-    readEnv('VITE_SERVER_URL') ??
-    DEFAULT_API_BASE_URL;
+const rawBaseUrl = readEnv('VITE_API_BASE_URL') ?? DEFAULT_API_BASE_URL;
 
 // Strip a single trailing slash so callers can safely do `${API_BASE_URL}/path`.
 export const API_BASE_URL: string = rawBaseUrl.replace(/\/+$/, '');

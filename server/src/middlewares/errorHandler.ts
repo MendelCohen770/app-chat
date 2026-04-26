@@ -30,7 +30,7 @@ export const asyncHandler =
 
 export const notFoundHandler = (req: Request, res: Response) => {
     res.status(404).json({
-        message: 'Route not found',
+        message: 'Not Found',
         code: 'NOT_FOUND',
     });
 };

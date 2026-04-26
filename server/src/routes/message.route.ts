@@ -1,7 +1,7 @@
 import express from 'express'
-import { sendMessage, getMessages, sendVoiceMessage, voiceUpload, sendMediaMessage } from '../controllers/message.controller';
+import { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage } from '../controllers/message.controller';
 import { authMiddleware } from '../middlewares/middel';
-import { chatMediaUpload } from '../middlewares/upload';
+import { chatMediaUpload, voiceUpload } from '../middlewares/upload';
 import { validateBody } from '../middlewares/validate.middleware';
 import { sendMediaBodySchema, sendMessageBodySchema, sendVoiceBodySchema } from '../schemas';
 

@@ -1,7 +1,23 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { randomUUID } from "crypto";
 import { logger } from "../utils/logger";
+
+type UploadRule = {
+    folder: "images" | "audio" | "video";
+    maxBytes: number;
+    extension: string;
+};
+
+const UPLOAD_RULES: Record<string, UploadRule> = {
+    "image/jpeg": { folder: "images", maxBytes: 5 * 1024 * 1024, extension: ".jpg" },
+    "image/png": { folder: "images", maxBytes: 5 * 1024 * 1024, extension: ".png" },
+    "image/webp": { folder: "images", maxBytes: 5 * 1024 * 1024, extension: ".webp" },
+    "audio/webm": { folder: "audio", maxBytes: 10 * 1024 * 1024, extension: ".webm" },
+    "audio/mpeg": { folder: "audio", maxBytes: 10 * 1024 * 1024, extension: ".mp3" },
+    "video/mp4": { folder: "video", maxBytes: 50 * 1024 * 1024, extension: ".mp4" },
+};
 
 const defaultUploadsDir = path.join(__dirname, "..", "uploads");
 try {
@@ -13,11 +29,17 @@ try {
 // Default image upload (used by legacy code paths / general purpose).
 const storage = multer.diskStorage({
     destination: (_req, _file, cb) => {
-        cb(null, defaultUploadsDir);
+        const imagesDir = path.join(defaultUploadsDir, "images");
+        try {
+            fs.mkdirSync(imagesDir, { recursive: true });
+        } catch (err) {
+            logger.error({ err, dir: imagesDir }, "Failed to ensure image uploads directory");
+        }
+        cb(null, imagesDir);
     },
     filename: (_req, file, cb) => {
-        const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
-        cb(null, `${Date.now()}-${safe}`);
+        const fallbackExt = path.extname(file.originalname || "").toLowerCase() || ".bin";
+        cb(null, `${randomUUID()}${fallbackExt}`);
     },
 });
 
@@ -79,46 +101,38 @@ export const profileIconUpload = multer({
     limits: { fileSize: 3 * 1024 * 1024 },
 }).single("profileIcon");
 
-// Dedicated storage for chat media (images / videos / files) attached to
-// messages. Each file goes under uploads/media so it can be served via the
-// /uploads static mount just like voice notes.
-const chatMediaDir = path.join(__dirname, "..", "uploads", "media");
-try {
-    fs.mkdirSync(chatMediaDir, { recursive: true });
-} catch (err) {
-    logger.error({ err, dir: chatMediaDir }, "Failed to ensure chat media directory");
-}
+const resolveUploadRule = (mime: string | undefined) => {
+    const normalized = (mime || "").toLowerCase();
+    return UPLOAD_RULES[normalized];
+};
 
-const chatMediaStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, chatMediaDir),
+const secureMediaStorage = multer.diskStorage({
+    destination: (_req, file, cb) => {
+        const rule = resolveUploadRule(file.mimetype);
+        if (!rule) {
+            cb(new Error("Unsupported file type"), defaultUploadsDir);
+            return;
+        }
+        const targetDir = path.join(defaultUploadsDir, rule.folder);
+        try {
+            fs.mkdirSync(targetDir, { recursive: true });
+        } catch (err) {
+            logger.error({ err, dir: targetDir }, "Failed to ensure typed uploads directory");
+            cb(err as Error, targetDir);
+            return;
+        }
+        cb(null, targetDir);
+    },
     filename: (_req, file, cb) => {
-        const rawExt = path.extname(file.originalname || "").toLowerCase();
-        const safeExt = rawExt.replace(/[^a-z0-9.]/g, "").slice(0, 10) || ".bin";
-        const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-        cb(null, `media-${unique}${safeExt}`);
+        const rule = resolveUploadRule(file.mimetype);
+        const fallbackExt = path.extname(file.originalname || "").toLowerCase() || ".bin";
+        const ext = rule?.extension || fallbackExt;
+        cb(null, `${randomUUID()}${ext}`);
     },
 });
 
-// Allow images, videos and generic documents. Audio has its own dedicated
-// endpoint (voiceUpload), but we still accept it here for completeness.
-const chatMediaFileFilter = (_req: any, file: any, cb: any) => {
-    const mime = (file.mimetype || "").toLowerCase();
-    const allowedPrefix = ["image/", "video/", "audio/"];
-    const allowedExact = new Set([
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.ms-powerpoint",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "application/zip",
-        "application/x-zip-compressed",
-        "application/json",
-        "text/plain",
-        "text/csv",
-    ]);
-    if (allowedPrefix.some((p) => mime.startsWith(p)) || allowedExact.has(mime)) {
+const secureMediaFileFilter = (_req: any, file: any, cb: any) => {
+    if (resolveUploadRule(file.mimetype)) {
         cb(null, true);
         return;
     }
@@ -126,9 +140,36 @@ const chatMediaFileFilter = (_req: any, file: any, cb: any) => {
 };
 
 export const chatMediaUpload = multer({
-    storage: chatMediaStorage,
-    fileFilter: chatMediaFileFilter,
-    limits: { fileSize: 25 * 1024 * 1024 },
+    storage: secureMediaStorage,
+    fileFilter: secureMediaFileFilter,
+    limits: { fileSize: 50 * 1024 * 1024 },
 }).single("media");
+
+const voiceOnlyFileFilter = (_req: any, file: any, cb: any) => {
+    const mime = (file.mimetype || "").toLowerCase();
+    if (mime === "audio/webm" || mime === "audio/mpeg") {
+        cb(null, true);
+        return;
+    }
+    cb(new Error("Only audio/webm and audio/mpeg are allowed"), false);
+};
+
+export const voiceUpload = multer({
+    storage: secureMediaStorage,
+    fileFilter: voiceOnlyFileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 },
+}).single("audio");
+
+export const enforceUploadPolicy = (file: Express.Multer.File | undefined) => {
+    if (!file) return;
+    const rule = resolveUploadRule(file.mimetype);
+    if (!rule) {
+        throw new Error("Unsupported file type");
+    }
+    if (file.size > rule.maxBytes) {
+        const maxMb = Math.floor(rule.maxBytes / (1024 * 1024));
+        throw new Error(`File too large for ${file.mimetype}. Max size is ${maxMb}MB`);
+    }
+};
 
 export default upload;

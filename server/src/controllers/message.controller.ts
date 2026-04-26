@@ -4,9 +4,8 @@ import { Request, Response } from "express";
 import { genericResponse } from '../utils/helper';
 import path from 'path';
 import fs from 'fs';
-import multer from 'multer';
+import { enforceUploadPolicy } from "../middlewares/upload";
 import { asyncHandler, AppError } from '../middlewares/errorHandler';
-import { logger } from '../utils/logger';
 
 const safeUnlink = (p?: string) => {
     if (!p) return;
@@ -135,45 +134,10 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
-const audioUploadsDir = path.join(__dirname, '..', 'uploads', 'audio');
-try {
-    fs.mkdirSync(audioUploadsDir, { recursive: true });
-} catch (err) {
-    logger.error({ err, dir: audioUploadsDir }, 'Failed to ensure audio uploads directory');
-}
-
-const audioStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, audioUploadsDir),
-    filename: (_req, file, cb) => {
-        const safeBase = `voice-${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-        const ext = (() => {
-            const original = (file.originalname || '').toLowerCase();
-            if (original.endsWith('.webm')) return '.webm';
-            if (original.endsWith('.ogg')) return '.ogg';
-            if (original.endsWith('.mp4') || original.endsWith('.m4a')) return '.m4a';
-            if (original.endsWith('.mp3')) return '.mp3';
-            if (original.endsWith('.wav')) return '.wav';
-            if (file.mimetype === 'audio/ogg') return '.ogg';
-            if (file.mimetype === 'audio/mp4' || file.mimetype === 'audio/x-m4a') return '.m4a';
-            if (file.mimetype === 'audio/mpeg') return '.mp3';
-            if (file.mimetype === 'audio/wav' || file.mimetype === 'audio/wave') return '.wav';
-            return '.webm';
-        })();
-        cb(null, `${safeBase}${ext}`);
-    },
-});
-
-export const voiceUpload = multer({
-    storage: audioStorage,
-    limits: { fileSize: 15 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-        if (file.mimetype && file.mimetype.startsWith('audio/')) {
-            cb(null, true);
-            return;
-        }
-        cb(new Error('Only audio files are allowed'));
-    },
-}).single('audio');
+const buildMediaUrl = (file: Express.Multer.File) => {
+    const folder = path.basename(file.destination || "");
+    return `/uploads/${folder}/${file.filename}`;
+};
 
 const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
     const file = (req as any).file as Express.Multer.File | undefined;
@@ -191,8 +155,9 @@ const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
         if (!file) {
             throw new AppError(400, 'No audio file uploaded', 'audio field is missing');
         }
+        enforceUploadPolicy(file);
 
-        const mediaUrl = `/uploads/audio/${file.filename}`;
+        const mediaUrl = buildMediaUrl(file);
         const message = new Message({
             sender: authUserId,
             receiver,
@@ -238,9 +203,10 @@ const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
         if (!file) {
             throw new AppError(400, 'No file uploaded', 'media field is missing');
         }
+        enforceUploadPolicy(file);
 
         const resolvedType = inferMediaType(file.mimetype, type);
-        const mediaUrl = `/uploads/media/${file.filename}`;
+        const mediaUrl = buildMediaUrl(file);
         const message = new Message({
             sender: authUserId,
             receiver,

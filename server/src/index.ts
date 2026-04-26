@@ -5,6 +5,7 @@ import path from 'path';
 import userRoute from './routes/user.route'
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import messageRoute from './routes/message.route';
 import healthRoute from './routes/health.route';
 import { Server } from 'socket.io';
@@ -40,6 +41,10 @@ validateRequiredEnv();
 
 const port = process.env.PORT || 3000;
 const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+const socketOrigin =
+  clientOrigin.startsWith('https://')
+    ? clientOrigin.replace('https://', 'wss://')
+    : clientOrigin.replace('http://', 'ws://');
 
 DBconnect();
 const server = http.createServer(app);
@@ -58,6 +63,24 @@ setUpSocket(io);
 setIO(io);
 app.use(correlationId);
 app.use(httpLogger);
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: ["'self'", clientOrigin, socketOrigin],
+      },
+    },
+  })
+);
 app.use(cookieParser());
 app.use(express.json());
 app.use('/user', userRoute);

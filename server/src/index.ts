@@ -19,6 +19,25 @@ import mongoose from 'mongoose';
 
 const app = express();
 dotenv.config();
+
+const REQUIRED_ENV_VARS = ['JWT_SECRET', 'DB_CONNECTION', 'CLIENT_ORIGIN', 'GOOGLE_CLIENT_ID'] as const;
+const MIN_JWT_SECRET_LENGTH = 15;
+
+const validateRequiredEnv = () => {
+  const missingVars = REQUIRED_ENV_VARS.filter((envVar) => !process.env[envVar]);
+
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+  }
+
+  const jwtSecret = process.env.JWT_SECRET as string;
+  if (jwtSecret.length < MIN_JWT_SECRET_LENGTH) {
+    throw new Error(`JWT_SECRET must be at least ${MIN_JWT_SECRET_LENGTH} characters long`);
+  }
+};
+
+validateRequiredEnv();
+
 const port = process.env.PORT || 3000;
 const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 

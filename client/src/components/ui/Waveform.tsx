@@ -65,10 +65,9 @@ const Waveform: React.FC<WaveformProps> = ({
             aria-valuemax={onSeek ? 1 : undefined}
             aria-valuenow={onSeek && progress != null ? Number(progress.toFixed(2)) : undefined}
             tabIndex={onSeek ? 0 : undefined}
-            dir="ltr"
             preserveAspectRatio="none"
             viewBox={`0 0 ${width} ${height}`}
-            style={{ height }}
+            style={{ height, direction: 'ltr' }}
             className={[
                 'block flex-1 min-w-0',
                 onSeek ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded-sm' : '',

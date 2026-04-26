@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { genericResponse } from '../utils/helper';
 import { logger } from '../utils/logger';
+import { ZodError } from 'zod';
 
 export class AppError extends Error {
     public readonly statusCode: number;
@@ -29,64 +29,72 @@ export const asyncHandler =
     };
 
 export const notFoundHandler = (req: Request, res: Response) => {
-    const response = genericResponse(
-        false,
-        'Route not found',
-        `Cannot ${req.method} ${req.originalUrl}`,
-        'NOT_FOUND',
-        null,
-    );
-    res.status(404).json(response);
+    res.status(404).json({
+        message: 'Route not found',
+        code: 'NOT_FOUND',
+    });
 };
 
 export const errorHandler = (
     err: unknown,
     req: Request,
     res: Response,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _next: NextFunction,
+    next: NextFunction,
 ) => {
     const reqLogger = (req as Request & { log?: typeof logger }).log ?? logger;
 
     if (res.headersSent) {
         reqLogger.error({ err }, 'errorHandler: headers already sent, delegating');
-        return;
+        return next(err);
     }
 
     let statusCode = 500;
-    let displayMessage = 'Internal server error';
-    let description: string | null = null;
-    let exception: string | null = null;
+    let message = 'Internal server error';
+    let code = 'INTERNAL_ERROR';
+    let debugMessage: string | null = null;
 
     if (err instanceof AppError) {
         statusCode = err.statusCode;
-        displayMessage = err.displayMessage;
-        description = err.description;
-        exception = null;
+        message = err.displayMessage;
+        code = 'APP_ERROR';
+        debugMessage = err.description;
+    } else if (err instanceof ZodError) {
+        statusCode = 400;
+        message = 'Validation error';
+        code = 'VALIDATION_ERROR';
+        debugMessage = err.issues
+            .map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`)
+            .join(', ');
     } else if (err instanceof Error) {
-        const anyErr = err as Error & { status?: number; statusCode?: number; code?: string };
+        const anyErr = err as Error & { status?: number; statusCode?: number; code?: string | number };
         if (typeof anyErr.statusCode === 'number') statusCode = anyErr.statusCode;
         else if (typeof anyErr.status === 'number') statusCode = anyErr.status;
 
         if (err.name === 'ValidationError') {
             statusCode = 400;
-            displayMessage = 'Validation error';
+            message = 'Validation error';
+            code = 'MONGOOSE_VALIDATION_ERROR';
         } else if (err.name === 'CastError') {
             statusCode = 400;
-            displayMessage = 'Invalid identifier';
+            message = 'Invalid identifier';
+            code = 'MONGOOSE_CAST_ERROR';
         } else if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
             statusCode = 401;
-            displayMessage = 'Authentication failed';
+            message = 'Authentication failed';
+            code = 'AUTH_ERROR';
+        } else if (anyErr.code === 11000) {
+            statusCode = 409;
+            message = 'Duplicate value';
+            code = 'MONGOOSE_DUPLICATE_KEY';
         } else if (anyErr.code === 'LIMIT_FILE_SIZE') {
             statusCode = 413;
-            displayMessage = 'File too large';
+            message = 'File too large';
+            code = 'FILE_TOO_LARGE';
         }
 
-        description = err.message || null;
-        exception = err.name;
+        debugMessage = err.message || null;
     } else {
-        exception = 'UnknownError';
-        description = typeof err === 'string' ? err : null;
+        debugMessage = typeof err === 'string' ? err : null;
     }
 
     const logPayload = {
@@ -94,7 +102,7 @@ export const errorHandler = (
         method: req.method,
         url: req.originalUrl,
         statusCode,
-        exception,
+        code,
     };
     if (statusCode >= 500) {
         reqLogger.error(logPayload, 'Request failed');
@@ -102,13 +110,15 @@ export const errorHandler = (
         reqLogger.warn(logPayload, 'Request rejected');
     }
 
-    const payload = genericResponse(
-        false,
-        displayMessage,
-        description,
-        exception,
-        null,
-    );
+    const payload: { message: string; code: string; stack?: string; debug?: string } = { message, code };
+    if (process.env.NODE_ENV !== 'production') {
+        if (debugMessage) {
+            payload.debug = debugMessage;
+        }
+        if (err instanceof Error && err.stack) {
+            payload.stack = err.stack;
+        }
+    }
 
     res.status(statusCode).json(payload);
 };

@@ -8,6 +8,7 @@ import { ChatProvider } from "./context/ChatProvider";
 import { UserProvider } from "./context/UserProvider";
 import { PresenceProvider } from "./context/PresenceProvider";
 import { TypingProvider } from "./context/TypingProvider";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -16,7 +17,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <PresenceProvider>
           <TypingProvider>
             <ChatProvider>
-              <App />
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
             </ChatProvider>
           </TypingProvider>
         </PresenceProvider>

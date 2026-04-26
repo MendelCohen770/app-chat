@@ -42,6 +42,14 @@ validateRequiredEnv();
 
 const port = process.env.PORT || 3000;
 const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+const defaultAllowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const configuredAllowedOrigins = (process.env.CORS_ORIGIN_WHITELIST || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = Array.from(
+  new Set([...defaultAllowedOrigins, clientOrigin, ...configuredAllowedOrigins])
+);
 const socketOrigin =
   clientOrigin.startsWith('https://')
     ? clientOrigin.replace('https://', 'wss://')
@@ -73,13 +81,25 @@ const messageRateLimiter = rateLimit({
 
 DBconnect();
 const server = http.createServer(app);
-app.use(cors({
-  origin: clientOrigin,
-  credentials: true,
-}))
+app.use(
+  cors((req, callback) => {
+    const requestOrigin = req.header('Origin');
+    const isAllowedOrigin = !!requestOrigin && allowedOrigins.includes(requestOrigin);
+
+    callback(null, {
+      origin: isAllowedOrigin,
+      credentials: isAllowedOrigin,
+    });
+  })
+);
 const io = new Server(server,{
   cors: {
-    origin: clientOrigin,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Socket.IO CORS origin not allowed'));
+    },
     methods: ["GET", "POST"],
     credentials: true,
   }

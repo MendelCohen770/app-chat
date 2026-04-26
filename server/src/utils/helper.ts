@@ -59,6 +59,7 @@ export const sendEmail = async (email : string, otp : string) => {
         logger.info({ to: email }, 'OTP email sent');
     }catch(err){
         logger.error({ err, to: email }, 'Error sending OTP email');
+        throw err;
     }
     
 };

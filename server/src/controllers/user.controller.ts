@@ -342,15 +342,13 @@ const otpService = asyncHandler(async (req: Request, res: Response) => {
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
-        throw new AppError(404, 'User not found');
+    if (user) {
+        const otp = generateOTP();
+        await sendEmail(email, otp);
+        await saveOTPToDB(email, otp);
     }
 
-    const otp = generateOTP();
-    await sendEmail(email, otp);
-    await saveOTPToDB(email, otp);
-
-    res.status(200).json(genericResponse(true, 'OTP send to email', null, null, otp));
+    res.status(200).json(genericResponse(true, 'If the email exists, a code was sent', null, null, null));
 });
 
 

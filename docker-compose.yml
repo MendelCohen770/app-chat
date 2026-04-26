@@ -1,0 +1,67 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app_internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - app_internal
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: ${SERVER_PORT:-3000}
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_CONNECTION: ${DB_CONNECTION:-mongodb://mongo:27017/app-chat}
+      JWT_SECRET: ${JWT_SECRET:-replace_with_a_long_random_secret}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:5173}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your_google_client_id_here}
+      CORS_ORIGIN_WHITELIST: ${CORS_ORIGIN_WHITELIST:-http://localhost:5173,http://127.0.0.1:5173}
+      SHUTDOWN_TIMEOUT_MS: ${SHUTDOWN_TIMEOUT_MS:-10000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SERVICE_NAME: ${SERVICE_NAME:-app-chat-server}
+      EMAIL: ${EMAIL:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - app_internal
+      - app_edge
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5173}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your_google_client_id_here}
+    restart: unless-stopped
+    ports:
+      - "${CLIENT_PORT:-5173}:80"
+    depends_on:
+      - server
+    networks:
+      - app_edge
+
+volumes:
+  mongo_data:
+  uploads_data:
+
+networks:
+  app_internal:
+    driver: bridge
+    internal: true
+  app_edge:
+    driver: bridge

@@ -1,7 +1,6 @@
-import express, { Application, Request, Response } from 'express';
+import express from 'express';
 import DBconnect from './DBconnect/DBconnect'
 import dotenv from 'dotenv';
-import path from 'path';
 import userRoute from './routes/user.route'
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -16,6 +15,7 @@ import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { correlationId, httpLogger } from './middlewares/requestContext';
 import { logger } from './utils/logger';
 import mongoose from 'mongoose';
+import uploadsRoute from './routes/uploads.route';
 
 
 
@@ -138,7 +138,7 @@ app.use('/message/sendMedia', messageRateLimiter);
 app.use('/user', userRoute);
 app.use('/message', messageRoute);
 app.use('/', healthRoute);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', uploadsRoute);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

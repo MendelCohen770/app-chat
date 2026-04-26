@@ -22,3 +22,16 @@ export const validateBody =
         req.body = parsed.data as Request['body'];
         next();
     };
+
+export const validateQuery =
+    <T>(schema: ZodType<T>) =>
+    (req: Request, _res: Response, next: NextFunction) => {
+        const parsed = schema.safeParse(req.query);
+
+        if (!parsed.success) {
+            return next(new AppError(400, 'Validation error', formatZodIssues(parsed.error.issues)));
+        }
+
+        req.query = parsed.data as Request['query'];
+        next();
+    };

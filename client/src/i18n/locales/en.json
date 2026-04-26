@@ -136,6 +136,11 @@
     "backToContacts": "Back to contacts",
     "messageFrom": "Message from {{name}}",
     "messageFromMe": "My message",
+    "receipt": {
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read"
+    },
     "voice": {
       "recording": "Recording…",
       "stop": "Stop recording",

@@ -15,10 +15,72 @@ type Message = {
   media?: string;
 };
 
+export type ReadReceiptStatus = 'sent' | 'delivered' | 'read';
+
 interface MessageItemProps {
   message: Message;
   highlight?: string;
+  status?: ReadReceiptStatus;
 }
+
+/**
+ * WhatsApp-style read receipts: single check for "sent", double check for
+ * "delivered", double check in accent color for "read". Only shown for the
+ * current user's outgoing messages; omitted for incoming ones.
+ */
+const ReadReceipt: React.FC<{ status: ReadReceiptStatus }> = ({ status }) => {
+  const { t } = useTranslation();
+  const label =
+    status === 'read'
+      ? t('chat.receipt.read')
+      : status === 'delivered'
+        ? t('chat.receipt.delivered')
+        : t('chat.receipt.sent');
+
+  // Overlapping double-check for delivered/read, single check for sent.
+  const tone =
+    status === 'read' ? 'text-sky-300' : 'text-orange-100/80';
+
+  return (
+    <span
+      aria-label={label}
+      title={label}
+      className={['inline-flex items-center leading-none', tone].join(' ')}
+    >
+      {status === 'sent' ? (
+        <svg viewBox="0 0 16 12" width="14" height="11" aria-hidden="true">
+          <path
+            d="M1 6.5 L5 10.5 L14.5 1.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 20 12" width="18" height="11" aria-hidden="true">
+          <path
+            d="M1 6.5 L5 10.5 L14.5 1.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M6 6.5 L10 10.5 L19.5 1.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </span>
+  );
+};
 
 const resolveMediaUrl = (media?: string): string | undefined => {
   if (!media) return undefined;
@@ -64,7 +126,7 @@ const renderHighlighted = (text: string, needle: string): React.ReactNode => {
   );
 };
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, highlight }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, highlight, status }) => {
   const { t } = useTranslation();
   const isMine = message.sender === 'me';
   const mediaUrl = resolveMediaUrl(message.media);
@@ -173,14 +235,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, highlight }) => {
 
         <span
           className={[
-            'select-none',
+            'select-none inline-flex items-center gap-1',
             isMediaBubble
-              ? 'block text-end text-[10px] mt-1 pe-1'
+              ? 'text-end text-[10px] mt-1 pe-1 justify-end'
               : 'absolute bottom-1 end-2 text-[10px]',
             isMine ? 'text-orange-100' : 'text-slate-300',
           ].join(' ')}
         >
-          {message.timestamp}
+          <span>{message.timestamp}</span>
+          {isMine && status && <ReadReceipt status={status} />}
         </span>
       </article>
     </div>

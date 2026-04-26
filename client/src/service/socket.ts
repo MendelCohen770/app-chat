@@ -142,3 +142,44 @@ export const emitTypingStop = (receiverId: string) => {
     if (!socket || !receiverId) return;
     socket.emit('typing:stop', { to: receiverId });
 };
+
+// ---------- Read receipts ----------
+
+export type MessageStatus = 'delivered' | 'read';
+
+export type MessageStatusPayload = {
+    ids: string[];
+    status: MessageStatus;
+    at: string;
+    peerId: string;
+};
+
+/**
+ * Subscribe to message-status updates. The server emits one event per batch
+ * when messages become delivered or are read by the peer. Returns an
+ * unsubscribe function.
+ */
+export const subscribeToMessageStatus = (
+    handler: (payload: MessageStatusPayload) => void,
+): (() => void) => {
+    if (!socket) return () => {};
+    const s = socket;
+    const wrapped = (payload: MessageStatusPayload) => {
+        if (!payload || !Array.isArray(payload.ids) || payload.ids.length === 0) return;
+        handler(payload);
+    };
+    s.on('messages:status', wrapped);
+    return () => {
+        s.off('messages:status', wrapped);
+    };
+};
+
+/**
+ * Tell the server that the current user has read every message sent from
+ * `peerId` up to now. Safe to call repeatedly; the server no-ops when there is
+ * nothing left to mark.
+ */
+export const emitMessagesRead = (peerId: string) => {
+    if (!socket || !peerId) return;
+    socket.emit('messages:read', { peerId });
+};

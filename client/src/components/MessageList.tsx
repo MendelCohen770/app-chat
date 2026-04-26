@@ -3,7 +3,12 @@ import { useTranslation } from 'react-i18next';
 import MessageItem from './MessageItem';
 import { useChat } from '../context/useChat';
 import { useUser } from '../context/useUser';
-import { onNewMessage } from '../service/socket';
+import {
+  onNewMessage,
+  subscribeToMessageStatus,
+  emitMessagesRead,
+  type MessageStatusPayload,
+} from '../service/socket';
 import { LoadingState, EmptyState, ErrorState } from './ui/States';
 import { API_BASE_URL } from '../config/env';
 
@@ -16,6 +21,8 @@ type MessageVm = {
   type?: MessageKind;
   media?: string;
   createdAtIso: string;
+  deliveredAtIso: string | null;
+  readAtIso: string | null;
 };
 
 type MessagesPage = {
@@ -29,6 +36,12 @@ const PAGE_SIZE = 50;
 const formatTime = (iso: string): string =>
   new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+const toIsoOrNull = (value: unknown): string | null => {
+  if (!value) return null;
+  const d = new Date(value as string | number | Date);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
+
 const mapRow = (m: any, myId: string): MessageVm => {
   const iso = m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString();
   return {
@@ -39,6 +52,8 @@ const mapRow = (m: any, myId: string): MessageVm => {
     type: m.type as MessageKind | undefined,
     media: m.media,
     createdAtIso: iso,
+    deliveredAtIso: toIsoOrNull(m.deliveredAt),
+    readAtIso: toIsoOrNull(m.readAt),
   };
 };
 
@@ -202,13 +217,16 @@ const MessageList = () => {
   useEffect(() => {
     if (!myId || !otherId) return;
     const handler = (payload: any) => {
-      const { senderId, receiverId, content, createdAt, _id, type, media } = payload || {};
+      const { senderId, receiverId, content, createdAt, _id, type, media, deliveredAt, readAt } =
+        payload || {};
       const relevant =
         (senderId === myId && receiverId === otherId) ||
         (senderId === otherId && receiverId === myId);
       if (!relevant) return;
+      let appended = false;
       setItems((prev) => {
         if (prev.some((m) => m.id === _id)) return prev;
+        appended = true;
         const iso = createdAt ? new Date(createdAt).toISOString() : new Date().toISOString();
         return [
           ...prev,
@@ -220,6 +238,8 @@ const MessageList = () => {
             type: type as MessageKind | undefined,
             media,
             createdAtIso: iso,
+            deliveredAtIso: toIsoOrNull(deliveredAt),
+            readAtIso: toIsoOrNull(readAt),
           },
         ];
       });
@@ -232,9 +252,50 @@ const MessageList = () => {
           el.scrollTop = el.scrollHeight;
         }
       });
+      // Incoming message in the open conversation → immediately mark as read.
+      if (appended && senderId === otherId) {
+        emitMessagesRead(otherId);
+      }
     };
     onNewMessage(handler);
   }, [myId, otherId]);
+
+  // Subscribe to message-status updates (✓✓ delivered / read) for this chat.
+  useEffect(() => {
+    if (!myId || !otherId) return;
+    const unsubscribe = subscribeToMessageStatus((payload: MessageStatusPayload) => {
+      // Only care about status for the conversation currently on screen.
+      if (payload.peerId !== myId && payload.peerId !== otherId) return;
+      const ids = new Set(payload.ids);
+      setItems((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          if (!ids.has(m.id)) return m;
+          const deliveredAtIso =
+            m.deliveredAtIso || (payload.status === 'delivered' ? payload.at : payload.at);
+          const readAtIso = payload.status === 'read' ? payload.at : m.readAtIso;
+          if (m.deliveredAtIso === deliveredAtIso && m.readAtIso === readAtIso) return m;
+          changed = true;
+          return { ...m, deliveredAtIso, readAtIso };
+        });
+        return changed ? next : prev;
+      });
+    });
+    return unsubscribe;
+  }, [myId, otherId]);
+
+  // When the conversation is open and there are unread messages from the peer,
+  // notify the server so their ✓✓ flip to the "read" state.
+  useEffect(() => {
+    if (!myId || !otherId) return;
+    if (status !== 'success') return;
+    const hasUnreadFromPeer = items.some(
+      (m) => m.sender === 'other' && !m.readAtIso,
+    );
+    if (hasUnreadFromPeer) {
+      emitMessagesRead(otherId);
+    }
+  }, [myId, otherId, status, items]);
 
   if (status === 'loading') {
     return (
@@ -294,7 +355,20 @@ const MessageList = () => {
         </div>
       )}
       {filteredItems.map((message) => (
-        <MessageItem key={message.id} message={message} highlight={searchQuery} />
+        <MessageItem
+          key={message.id}
+          message={message}
+          highlight={searchQuery}
+          status={
+            message.sender === 'me'
+              ? message.readAtIso
+                ? 'read'
+                : message.deliveredAtIso
+                  ? 'delivered'
+                  : 'sent'
+              : undefined
+          }
+        />
       ))}
     </div>
   );

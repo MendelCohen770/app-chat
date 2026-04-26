@@ -1,5 +1,5 @@
 import Message, { MessageType } from "../models/message.schema";
-import { getIO } from "../sockets/socket";
+import { getIO, isUserOnline } from "../sockets/socket";
 import { Request, Response } from "express";
 import { genericResponse } from '../utils/helper';
 import path from 'path';
@@ -26,10 +26,24 @@ const emitNewMessage = (message: any) => {
                 content: message.content,
                 media: message.media,
                 createdAt: message.createdAt,
+                deliveredAt: message.deliveredAt || null,
+                readAt: message.readAt || null,
             });
     } catch (_) {
         // socket not ready / not initialised – safe to skip
     }
+};
+
+/**
+ * If the receiver already has at least one live socket, treat the message as
+ * delivered immediately so the sender sees ✓✓ without waiting for a reconnect.
+ */
+const persistMessageWithDelivery = async (message: any) => {
+    const receiverId = String(message.receiver);
+    if (isUserOnline(receiverId)) {
+        message.deliveredAt = new Date();
+    }
+    await message.save();
 };
 
 const sendMessage = asyncHandler(async (req: Request, res: Response) => {
@@ -50,7 +64,7 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
         content,
         media,
     });
-    await message.save();
+    await persistMessageWithDelivery(message);
     emitNewMessage(message);
 
     res.status(200).json(genericResponse(true, 'Message sent successfully', null, null, message));
@@ -186,7 +200,7 @@ const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
             content: '',
             media: mediaUrl,
         });
-        await message.save();
+        await persistMessageWithDelivery(message);
         emitNewMessage(message);
 
         res.status(200).json(genericResponse(true, 'Voice message sent successfully', null, null, message));
@@ -234,7 +248,7 @@ const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
             content: content || file.originalname || '',
             media: mediaUrl,
         });
-        await message.save();
+        await persistMessageWithDelivery(message);
         emitNewMessage(message);
 
         res.status(200).json(genericResponse(true, 'Media message sent successfully', null, null, message));

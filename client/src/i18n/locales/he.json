@@ -136,6 +136,11 @@
     "backToContacts": "חזרה לרשימת אנשי הקשר",
     "messageFrom": "הודעה מ-{{name}}",
     "messageFromMe": "הודעה שלי",
+    "receipt": {
+      "sent": "נשלח",
+      "delivered": "נמסר",
+      "read": "נקרא"
+    },
     "voice": {
       "recording": "מקליט…",
       "stop": "עצירת הקלטה",

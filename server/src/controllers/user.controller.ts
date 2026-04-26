@@ -15,10 +15,12 @@ const phoneRegex = /^[0-9+\-]{9,14}$/;
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV !== 'production',
-    sameSite: 'none' as const,
+    secure: isProduction,
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
     maxAge: 60 * 60 * 3000,
 };
 
@@ -311,8 +313,8 @@ const login = asyncHandler(async (req: Request, res: Response) => {
 const logout = asyncHandler(async (_req: Request, res: Response) => {
     res.clearCookie('token', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'none',
+        secure: isProduction,
+        sameSite: isProduction ? ('none' as const) : ('lax' as const),
     });
     res.status(200).json(genericResponse(true, 'Logged out successfully', null, null, null));
 });

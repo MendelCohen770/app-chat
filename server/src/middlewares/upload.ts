@@ -19,7 +19,7 @@ const UPLOAD_RULES: Record<string, UploadRule> = {
     "video/mp4": { folder: "video", maxBytes: 50 * 1024 * 1024, extension: ".mp4" },
 };
 
-const defaultUploadsDir = path.join(__dirname, "..", "uploads");
+const defaultUploadsDir = path.resolve(process.cwd(), "uploads");
 try {
     fs.mkdirSync(defaultUploadsDir, { recursive: true });
 } catch (err) {
@@ -59,7 +59,7 @@ const upload = multer({
 
 // Dedicated storage for profile icons so they live in a separate folder and
 // are easy to serve / clean up.
-const profileIconsDir = path.join(__dirname, "..", "uploads", "profile");
+const profileIconsDir = path.join(defaultUploadsDir, "profile");
 try {
     fs.mkdirSync(profileIconsDir, { recursive: true });
 } catch (err) {

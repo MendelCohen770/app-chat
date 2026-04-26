@@ -5,7 +5,7 @@ import Message from "../models/message.schema";
 import User from "../models/user.schema";
 import { asyncHandler, AppError } from "../middlewares/errorHandler";
 
-const uploadsRoot = path.join(__dirname, "..", "uploads");
+const uploadsRoot = path.resolve(process.cwd(), "uploads");
 const messageMediaCategories = new Set(["images", "audio", "video", "media"]);
 
 const sanitizePathSegment = (value: string, fieldName: string) => {

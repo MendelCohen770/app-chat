@@ -104,7 +104,8 @@ const updateUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 
-const profileIconsDir = path.join(__dirname, '..', 'uploads', 'profile');
+const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+const profileIconsDir = path.join(uploadsRoot, 'profile');
 try {
     fs.mkdirSync(profileIconsDir, { recursive: true });
 } catch (err) {
@@ -134,7 +135,7 @@ const uploadProfileIcon = asyncHandler(async (req: Request, res: Response) => {
         await user.save();
 
         if (previousIcon && previousIcon.startsWith('/uploads/profile/')) {
-            const previousPath = path.join(__dirname, '..', previousIcon.replace(/^\//, ''));
+            const previousPath = path.join(uploadsRoot, previousIcon.replace(/^\/uploads\//, ''));
             fs.unlink(previousPath, () => { /* ignore missing file */ });
         }
 

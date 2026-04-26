@@ -152,36 +152,43 @@
 
 ## P1.1 — Build & Run לפרודקשן
 
-- [ ] **Server Build Script**
-  - [ ] להוסיף `"build": "tsc"` ב-`server/package.json`
-  - [ ] להוסיף `"start": "node dist/index.js"`
-  - [ ] לוודא `outDir: "dist"` ב-`tsconfig.json`
-  - [ ] לוודא שתיקיית `uploads/` נשמרת בנתיב יחסי תקין
-- [ ] **Graceful Shutdown**
-  - [ ] טיפול ב-`SIGTERM` ו-`SIGINT`
-  - [ ] סגירה מסודרת של HTTP server, Mongo, Socket.IO
-- [ ] **Server-side Logging**
-  - [ ] התקנת `pino` + `pino-pretty` ל-dev
-  - [ ] החלפת כל `console.log` ב-logger
-  - [ ] רמות: info, warn, error, debug
-  - [ ] correlation ID per request
+- [x] **Server Build Script**
+  - [x] להוסיף `"build": "tsc"` ב-`server/package.json`
+  - [x] להוסיף `"start": "node dist/index.js"`
+  - [x] לוודא `outDir: "dist"` ב-`tsconfig.json`
+  - [x] לוודא שתיקיית `uploads/` נשמרת בנתיב יחסי תקין
+  - [x] commit: `git commit -m "chore(server): align production build scripts and fix stable uploads path"`
+- [x] **Graceful Shutdown**
+  - [x] טיפול ב-`SIGTERM` ו-`SIGINT`
+  - [x] סגירה מסודרת של HTTP server, Mongo, Socket.IO
+  - [x] commit: `git commit -m "chore(server): implement graceful shutdown for signals and services"`
+- [x] **Server-side Logging**
+  - [x] התקנת `pino` + `pino-pretty` ל-dev
+  - [x] החלפת כל `console.log` ב-logger
+  - [x] רמות: info, warn, error, debug
+  - [x] correlation ID per request
+  - [x] commit: `git commit -m "chore(server): standardize structured logging with correlation ids"`
 
 ## P1.2 — Docker & Deploy
 
-- [ ] **Dockerfile — Server**
-  - [ ] Multi-stage build (TypeScript → JS)
-  - [ ] Image מבוסס `node:20-alpine`
-  - [ ] חשיפת PORT, COPY uploads volume
-  - [ ] non-root user
-- [ ] **Dockerfile — Client**
-  - [ ] Multi-stage build (Vite → static) + Nginx
-  - [ ] `nginx.conf` מותאם ל-SPA + reverse proxy ל-API
-- [ ] **docker-compose.yml**
-  - [ ] services: `mongo`, `redis`, `server`, `client`
-  - [ ] volumes ל-Mongo data ול-uploads
-  - [ ] networks פנימיים
-  - [ ] `.env` נטען אוטומטית
-- [ ] **`.dockerignore`** לכל service
+- [x] **Dockerfile — Server**
+  - [x] Multi-stage build (TypeScript → JS)
+  - [x] Image מבוסס `node:20-alpine`
+  - [x] חשיפת PORT, COPY uploads volume
+  - [x] non-root user
+  - [x] commit: `git commit -m "chore(server): add production multi-stage Dockerfile with non-root runtime"`
+- [x] **Dockerfile — Client**
+  - [x] Multi-stage build (Vite → static) + Nginx
+  - [x] `nginx.conf` מותאם ל-SPA + reverse proxy ל-API
+  - [x] commit: `git commit -m "chore(client): add production Dockerfile with nginx SPA and API proxy config"`
+- [x] **docker-compose.yml**
+  - [x] services: `mongo`, `redis`, `server`, `client`
+  - [x] volumes ל-Mongo data ול-uploads
+  - [x] networks פנימיים
+  - [x] `.env` נטען אוטומטית
+  - [x] commit: `git commit -m "chore(devops): add docker-compose stack with internal networks and persistent volumes"`
+- [x] **`.dockerignore`** לכל service
+  - [x] commit: `git commit -m "chore(devops): add dockerignore files for server and client builds"`
 
 ## P1.3 — CI/CD
 

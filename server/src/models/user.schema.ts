@@ -13,6 +13,7 @@ export interface IUser extends Document {
     phone?: string,
     googleId?: string,
     createdAt: Date;
+    deletedAt?: Date | null;
     profileIcon?: string; // שדה אופציונלי לאייקון המשתמש
     role: Role;
 }
@@ -23,9 +24,30 @@ const UserSchema: Schema = new Schema<IUser>({
     phone: {type: String, unique: true, sparse: true, match: /^[0-9+\-]{9,14}$/},
     googleId: {type: String, unique: true, sparse: true},
     createdAt: { type: Date, default: Date.now },
+    deletedAt: { type: Date, default: null },
     profileIcon: { type: String, default: '' },
     role: { type: Number, enum: [Role.admin, Role.user], default: Role.user},
 }, { timestamps: true});
+
+const applyExcludeDeletedFilter = function (this: any, next: (err?: Error) => void) {
+    const options = this.getOptions?.() ?? {};
+    if (options.withDeleted) return next();
+
+    const filter = this.getFilter?.() ?? {};
+    if (Object.prototype.hasOwnProperty.call(filter, 'deletedAt')) {
+        return next();
+    }
+
+    this.where({ deletedAt: null });
+    next();
+};
+
+UserSchema.pre('find', applyExcludeDeletedFilter);
+UserSchema.pre('findOne', applyExcludeDeletedFilter);
+UserSchema.pre('countDocuments', applyExcludeDeletedFilter);
+UserSchema.pre('findOneAndUpdate', applyExcludeDeletedFilter);
+UserSchema.pre('updateOne', applyExcludeDeletedFilter);
+UserSchema.pre('updateMany', applyExcludeDeletedFilter);
 
 const User = mongoose.model<IUser>('User', UserSchema);
 export default User;

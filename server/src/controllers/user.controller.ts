@@ -1,4 +1,5 @@
 import User from '../models/user.schema'
+import Message from '../models/message.schema';
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { genericResponse, createToken, generateOTP, sendEmail, saveOTPToDB } from '../utils/helper';
@@ -176,7 +177,7 @@ const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
             .sort({ createdAt: -1, _id: -1 })
             .skip(skip)
             .limit(limit),
-        User.estimatedDocumentCount(),
+        User.countDocuments(),
     ]);
 
     const hasMore = skip + items.length < total;
@@ -216,10 +217,20 @@ const deleteUser = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(400, 'Please provide a user ID', 'User ID field is missing');
     }
 
-    const user = await User.findByIdAndDelete(_id);
+    const deletedAt = new Date();
+    const user = await User.findOneAndUpdate(
+        { _id, deletedAt: null },
+        { $set: { deletedAt } },
+        { new: true },
+    ).select('-password');
     if (!user) {
         throw new AppError(404, 'User not found');
     }
+
+    await Message.updateMany(
+        { $or: [{ sender: _id }, { receiver: _id }] },
+        { $set: { deletedAt } },
+    );
 
     res.status(200).json(genericResponse(true, 'User deleted', null, null, user));
 });
@@ -246,10 +257,20 @@ const deleteSelfAccount = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(401, 'Invalid credentials');
     }
 
-    const deleted = await User.findByIdAndDelete(userId);
+    const deletedAt = new Date();
+    const deleted = await User.findOneAndUpdate(
+        { _id: userId, deletedAt: null },
+        { $set: { deletedAt } },
+        { new: true },
+    );
     if (!deleted) {
         throw new AppError(404, 'Failed to delete account');
     }
+
+    await Message.updateMany(
+        { $or: [{ sender: userId }, { receiver: userId }] },
+        { $set: { deletedAt } },
+    );
 
     res.status(200).json(genericResponse(true, 'Account deleted successfully', null, null, null));
 });

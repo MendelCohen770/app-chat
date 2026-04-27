@@ -256,9 +256,10 @@
   - [x] `getAllUsers` — limit + page
   - [x] השלמה בצד client (infinite scroll)
   - [ ] commit: `git commit -m "feat(client): add contacts infinite scroll and complete pagination flow"`
-- [ ] **Soft Delete**
-  - [ ] שדה `deletedAt` במשתמשים והודעות
-  - [ ] שאילתות מסננות אוטומטית
+- [x] **Soft Delete**
+  - [x] שדה `deletedAt` במשתמשים והודעות
+  - [x] שאילתות מסננות אוטומטית
+  - [ ] commit: `git commit -m "feat(server): implement soft delete with automatic query filtering"`
 
 ## P1.7 — Logging, Monitoring & Observability
 

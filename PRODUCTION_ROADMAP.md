@@ -199,14 +199,16 @@
   - [ ] (אופציונלי) `deploy.yml` ל-VPS / Render / Railway
   - [x] commit: `git commit -m "chore(ci): add GitHub Actions for lint, tests, and Docker builds"`
 - [ ] **Branch Protection**
-  - [ ] חובה לעבור CI לפני merge
-  - [ ] חובה PR review
+  - [ ] חובה לעבור CI לפני merge (`Lint and Typecheck`, `Test`)
+  - [ ] חובה PR review (לפחות 1 Approval)
+  - [ ] הגדרה ב-GitHub: `Settings -> Branches -> Add branch protection rule` עבור `main`
 
 ## P1.4 — Linting & Formatting
 
-- [ ] **Prettier**
-  - [ ] התקנה והגדרת `.prettierrc` משותף לכל הפרויקט
-  - [ ] script `format` בכל package
+- [x] **Prettier**
+  - [x] התקנה והגדרת `.prettierrc` משותף לכל הפרויקט
+  - [x] script `format` בכל package
+  - [x] commit: `git commit -m "chore(format): add shared Prettier config and format scripts for client and server"`
 - [ ] **ESLint לשרת**
   - [ ] `.eslintrc.cjs` לשרת עם TypeScript ESLint
   - [ ] חוקים: no-unused-vars, no-explicit-any, consistent-imports

@@ -33,6 +33,7 @@ const MessageSchema = new Schema<Imessage>({
 // Fast lookup of undelivered / unread messages for a given receiver.
 MessageSchema.index({ receiver: 1, deliveredAt: 1 });
 MessageSchema.index({ receiver: 1, sender: 1, readAt: 1 });
+MessageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
 
 const Message = mongoose.model<Imessage>('Message', MessageSchema);
 export default Message;

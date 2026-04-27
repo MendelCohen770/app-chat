@@ -240,11 +240,12 @@
 
 ## P1.6 — Database
 
-- [ ] **אינדקסים ב-Mongoose**
-  - [ ] `user.email` — unique index
-  - [ ] `user.username` — index
-  - [ ] `message` — compound index `{ sender, receiver, createdAt }`
-  - [ ] `otp.email` + TTL index (פג תוקף אוטומטי)
+- [x] **אינדקסים ב-Mongoose**
+  - [x] `user.email` — unique index
+  - [x] `user.username` — index
+  - [x] `message` — compound index `{ sender, receiver, createdAt }`
+  - [x] `otp.email` + TTL index (פג תוקף אוטומטי)
+  - [ ] commit: `git commit -m "feat(server): add message and otp indexes for faster queries and OTP TTL cleanup"`
 - [ ] **Conversation Model**
   - [ ] סכמת `conversation.schema.ts` — `participants[]`, `lastMessage`, `updatedAt`
   - [ ] עדכון אוטומטי בכל הודעה חדשה

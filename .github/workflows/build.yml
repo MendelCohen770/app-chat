@@ -1,0 +1,23 @@
+name: Build Docker Images
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker-build:
+    name: Build server and client images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build server image
+        run: docker build -t app-chat-server:ci ./server
+
+      - name: Build client image
+        run: docker build -t app-chat-client:ci ./client

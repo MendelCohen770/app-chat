@@ -1,0 +1,45 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  tests:
+    name: Run available tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - client
+          - server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.project }}
+        run: npm ci
+
+      - name: Detect usable test script
+        id: detect-tests
+        run: |
+          node -e "const fs=require('fs'); const pkg=require('./${{ matrix.project }}/package.json'); const testScript=pkg.scripts&&pkg.scripts.test; const hasUsableTest=Boolean(testScript)&&!testScript.includes('no test specified'); fs.appendFileSync(process.env.GITHUB_OUTPUT, `run=${hasUsableTest}\n`);"
+
+      - name: Run tests
+        if: steps.detect-tests.outputs.run == 'true'
+        working-directory: ${{ matrix.project }}
+        run: npm test
+
+      - name: Skip notice
+        if: steps.detect-tests.outputs.run != 'true'
+        run: echo "No usable test script found in ${{ matrix.project }}; skipping."

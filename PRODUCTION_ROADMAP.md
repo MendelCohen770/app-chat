@@ -192,11 +192,12 @@
 
 ## P1.3 — CI/CD
 
-- [ ] **GitHub Actions — `.github/workflows/`**
-  - [ ] `lint.yml` — eslint + tsc על PR
-  - [ ] `test.yml` — הרצת בדיקות
-  - [ ] `build.yml` — בניית Docker images על main
+- [x] **GitHub Actions — `.github/workflows/`**
+  - [x] `lint.yml` — eslint + tsc על PR
+  - [x] `test.yml` — הרצת בדיקות
+  - [x] `build.yml` — בניית Docker images על main
   - [ ] (אופציונלי) `deploy.yml` ל-VPS / Render / Railway
+  - [x] commit: `git commit -m "chore(ci): add GitHub Actions for lint, tests, and Docker builds"`
 - [ ] **Branch Protection**
   - [ ] חובה לעבור CI לפני merge
   - [ ] חובה PR review

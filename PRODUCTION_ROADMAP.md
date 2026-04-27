@@ -229,12 +229,14 @@
   - [x] DB בדיקות מבודדות (`mongodb-memory-server`)
   - [ ] יעד כיסוי: 60%+
   - [x] commit: `git commit -m "test(server): setup Vitest + Supertest with unit, integration, and isolated DB tests"`
-- [ ] **Client — Vitest + React Testing Library**
-  - [ ] בדיקות לקומפוננטות מרכזיות (Login, MessageInput, MessageList)
-  - [ ] בדיקות hooks (UseUser, useChat, usePresence)
+- [x] **Client — Vitest + React Testing Library**
+  - [x] בדיקות לקומפוננטות מרכזיות (Login, MessageInput, MessageList)
+  - [x] בדיקות hooks (UseUser, useChat, usePresence)
+  - [ ] commit: `git commit -m "test(client): add Vitest + RTL coverage for key components and core hooks"`
 - [ ] **E2E — Playwright**
-  - [ ] תרחישי flow: signup → login → send message → logout
-  - [ ] הרצה ב-CI
+  - [x] תרחישי flow: signup → login → send message → logout
+  - [x] הרצה ב-CI
+  - [ ] commit: `git commit -m "test(e2e): add Playwright auth-message flow and CI execution"`
 
 ## P1.6 — Database
 

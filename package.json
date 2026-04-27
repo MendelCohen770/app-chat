@@ -1,0 +1,20 @@
+{
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "lint-staged": "lint-staged",
+    "typecheck": "npm --prefix server run typecheck"
+  },
+  "lint-staged": {
+    "*": [
+      "prettier --ignore-unknown --write"
+    ],
+    "server/src/**/*.ts": [
+      "npm --prefix server exec eslint --fix"
+    ]
+  }
+}

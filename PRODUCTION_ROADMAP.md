@@ -213,9 +213,10 @@
   - [x] `.eslintrc.cjs` לשרת עם TypeScript ESLint
   - [x] חוקים: no-unused-vars, no-explicit-any, consistent-imports
   - [x] commit: `git commit -m "chore(server): add TypeScript ESLint config and lint script with core rules"`
-- [ ] **Husky + lint-staged**
-  - [ ] pre-commit: lint + format על staged files
-  - [ ] pre-push: tsc check
+- [x] **Husky + lint-staged**
+  - [x] pre-commit: lint + format על staged files
+  - [x] pre-push: tsc check
+  - [x] commit: `git commit -m "chore(git-hooks): add husky and lint-staged with pre-commit and pre-push checks"`
 - [ ] **Commitlint** (אופציונלי)
   - [ ] convention: `feat:`, `fix:`, `chore:` וכו'
 

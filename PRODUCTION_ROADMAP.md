@@ -223,11 +223,12 @@
 ## P1.5 — בדיקות
 
 - [ ] **Server — Vitest + Supertest**
-  - [ ] התקנה והגדרה
-  - [ ] בדיקות יחידה: helpers, validators, middleware
-  - [ ] בדיקות אינטגרציה: auth flow, send message, get messages
-  - [ ] DB בדיקות מבודדות (`mongodb-memory-server`)
+  - [x] התקנה והגדרה
+  - [x] בדיקות יחידה: helpers, validators, middleware
+  - [x] בדיקות אינטגרציה: auth flow, send message, get messages
+  - [x] DB בדיקות מבודדות (`mongodb-memory-server`)
   - [ ] יעד כיסוי: 60%+
+  - [x] commit: `git commit -m "test(server): setup Vitest + Supertest with unit, integration, and isolated DB tests"`
 - [ ] **Client — Vitest + React Testing Library**
   - [ ] בדיקות לקומפוננטות מרכזיות (Login, MessageInput, MessageList)
   - [ ] בדיקות hooks (UseUser, useChat, usePresence)

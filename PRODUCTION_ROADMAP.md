@@ -263,11 +263,12 @@
 
 ## P1.7 — Logging, Monitoring & Observability
 
-- [ ] **Sentry**
-  - [ ] חשבון + DSN
-  - [ ] התקנה ב-server (`@sentry/node`)
-  - [ ] התקנה ב-client (`@sentry/react`)
-  - [ ] Source maps ב-production build
+- [x] **Sentry**
+  - [x] חשבון + DSN
+  - [x] התקנה ב-server (`@sentry/node`)
+  - [x] התקנה ב-client (`@sentry/react`)
+  - [x] Source maps ב-production build
+  - [ ] commit: `git commit -m "chore(observability): add sentry setup for server and client with production sourcemaps"`
 - [ ] **HTTP Access Logs**
   - [ ] `morgan` או `pino-http`
 - [ ] **Health Dashboard** (אופציונלי)

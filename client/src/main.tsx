@@ -9,6 +9,9 @@ import { UserProvider } from "./context/UserProvider";
 import { PresenceProvider } from "./context/PresenceProvider";
 import { TypingProvider } from "./context/TypingProvider";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { initSentry } from "./sentry";
+
+initSentry();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 import { ZodError } from 'zod';
+import { Sentry } from '../config/sentry';
 
 export class AppError extends Error {
     public readonly statusCode: number;
@@ -105,6 +106,7 @@ export const errorHandler = (
         code,
     };
     if (statusCode >= 500) {
+        Sentry.captureException(err);
         reqLogger.error(logPayload, 'Request failed');
     } else {
         reqLogger.warn(logPayload, 'Request rejected');

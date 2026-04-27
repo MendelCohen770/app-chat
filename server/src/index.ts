@@ -6,8 +6,10 @@ import DBconnect from './DBconnect/DBconnect';
 import { createApp, resolveAllowedOrigins } from './app';
 import setUpSocket, { setIO } from './sockets/socket';
 import { logger } from './utils/logger';
+import { initSentry } from './config/sentry';
 
 dotenv.config();
+initSentry();
 
 const REQUIRED_ENV_VARS = ['JWT_SECRET', 'DB_CONNECTION', 'CLIENT_ORIGIN', 'GOOGLE_CLIENT_ID'] as const;
 const MIN_JWT_SECRET_LENGTH = 15;

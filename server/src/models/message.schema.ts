@@ -9,6 +9,7 @@ export enum MessageType {
 }
 
 export interface Imessage extends Document{
+    conversationId: Schema.Types.ObjectId,
     sender: Schema.Types.ObjectId,
     receiver: Schema.Types.ObjectId,
     type: MessageType.text | MessageType.image | MessageType.video | MessageType.audio | MessageType.file,
@@ -21,6 +22,7 @@ export interface Imessage extends Document{
 }
 
 const MessageSchema = new Schema<Imessage>({
+    conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true },
     sender: {type: Schema.Types.ObjectId,  required: true},
     receiver: {type: Schema.Types.ObjectId, required: true},
     type: {type: String, enum: [MessageType.text, MessageType.image, MessageType.video, MessageType.audio, MessageType.file], default: MessageType.text},
@@ -34,6 +36,7 @@ const MessageSchema = new Schema<Imessage>({
 MessageSchema.index({ receiver: 1, deliveredAt: 1 });
 MessageSchema.index({ receiver: 1, sender: 1, readAt: 1 });
 MessageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
+MessageSchema.index({ conversationId: 1, createdAt: -1 });
 
 const Message = mongoose.model<Imessage>('Message', MessageSchema);
 export default Message;

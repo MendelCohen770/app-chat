@@ -52,10 +52,10 @@ describe('messages integration', () => {
     expect(sendResponse.status).toBe(200);
     expect(sendResponse.body?.data?.sender).toBe(sender.userId);
     expect(sendResponse.body?.data?.receiver).toBe(receiver.userId);
+    expect(sendResponse.body?.data?.conversationId).toBeTruthy();
 
     const getResponse = await sender.agent.get('/message/getMessages').query({
-      sender: sender.userId,
-      receiver: receiver.userId,
+      conversationId: sendResponse.body?.data?.conversationId,
       limit: '10',
     });
 

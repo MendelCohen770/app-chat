@@ -1,4 +1,5 @@
 import Message, { MessageType } from "../models/message.schema";
+import Conversation from "../models/conversation.schema";
 import { getIO, isUserOnline } from "../sockets/socket";
 import { Request, Response } from "express";
 import { genericResponse } from '../utils/helper';
@@ -12,6 +13,8 @@ const safeUnlink = (p?: string) => {
     try { fs.unlinkSync(p); } catch (_) { /* ignore */ }
 };
 
+const objectIdRegex = /^[a-f\d]{24}$/i;
+
 const emitNewMessage = (message: any) => {
     try {
         const io = getIO();
@@ -19,6 +22,7 @@ const emitNewMessage = (message: any) => {
             .to(String(message.receiver))
             .emit('newMessage', {
                 _id: message._id,
+                conversationId: String(message.conversationId),
                 senderId: String(message.sender),
                 receiverId: String(message.receiver),
                 type: message.type,
@@ -45,6 +49,51 @@ const persistMessageWithDelivery = async (message: any) => {
     await message.save();
 };
 
+const getConversationForDm = async (userA: string, userB: string) => {
+    const participants = [String(userA), String(userB)].sort();
+    let conversation = await Conversation.findOne({
+        participants: { $all: participants, $size: 2 },
+    });
+
+    if (!conversation) {
+        conversation = await Conversation.create({ participants });
+    }
+
+    return conversation;
+};
+
+const createAndPersistMessage = async ({
+    sender,
+    receiver,
+    type,
+    content,
+    media,
+}: {
+    sender: string;
+    receiver: string;
+    type: MessageType;
+    content?: string;
+    media?: string;
+}) => {
+    const conversation = await getConversationForDm(sender, receiver);
+    const message = new Message({
+        conversationId: conversation._id,
+        sender,
+        receiver,
+        type,
+        content,
+        media,
+    });
+
+    await persistMessageWithDelivery(message);
+    await Conversation.findByIdAndUpdate(conversation._id, {
+        lastMessage: message._id,
+        updatedAt: message.createdAt ?? new Date(),
+    });
+
+    return message;
+};
+
 const sendMessage = asyncHandler(async (req: Request, res: Response) => {
     const authUserId = req.user?.id;
     if (!authUserId) {
@@ -56,14 +105,13 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
     }
 
-    const message = new Message({
+    const message = await createAndPersistMessage({
         sender: authUserId,
-        receiver,
+        receiver: String(receiver),
         type,
         content,
         media,
     });
-    await persistMessageWithDelivery(message);
     emitNewMessage(message);
 
     res.status(200).json(genericResponse(true, 'Message sent successfully', null, null, message));
@@ -78,31 +126,50 @@ const getMessages = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(401, 'Authentication failed', 'No authenticated user');
     }
 
-    const { sender, receiver, before, limit: limitRaw } = req.query as {
+    const { sender, receiver, conversationId, before, limit: limitRaw } = req.query as {
         sender?: string;
         receiver?: string;
+        conversationId?: string;
         before?: string;
         limit?: string;
     };
-    if (!sender || !receiver) {
-        throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
-    }
-
-    if (String(sender) !== String(authUserId) && String(receiver) !== String(authUserId)) {
-        throw new AppError(403, 'Forbidden', 'You are not a participant of this conversation');
-    }
 
     const parsedLimit = parseInt(String(limitRaw ?? ''), 10);
     const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
         ? Math.min(parsedLimit, MESSAGES_MAX_LIMIT)
         : MESSAGES_DEFAULT_LIMIT;
 
-    const filter: Record<string, unknown> = {
-        $or: [
+    const filter: Record<string, unknown> = {};
+
+    if (conversationId) {
+        if (!objectIdRegex.test(String(conversationId))) {
+            throw new AppError(400, 'Invalid conversation id', '`conversationId` must be a valid ObjectId');
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            participants: authUserId,
+        }).select('_id');
+
+        if (!conversation) {
+            throw new AppError(403, 'Forbidden', 'You are not a participant of this conversation');
+        }
+
+        filter.conversationId = conversationId;
+    } else {
+        if (!sender || !receiver) {
+            throw new AppError(400, 'Please provide all the required fields', '`conversationId` or sender/receiver are required');
+        }
+
+        if (String(sender) !== String(authUserId) && String(receiver) !== String(authUserId)) {
+            throw new AppError(403, 'Forbidden', 'You are not a participant of this conversation');
+        }
+
+        filter.$or = [
             { sender, receiver },
             { sender: receiver, receiver: sender },
-        ],
-    };
+        ];
+    }
 
     if (before) {
         const beforeDate = new Date(String(before));
@@ -158,14 +225,13 @@ const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
         enforceUploadPolicy(file);
 
         const mediaUrl = buildMediaUrl(file);
-        const message = new Message({
+        const message = await createAndPersistMessage({
             sender: authUserId,
-            receiver,
+            receiver: String(receiver),
             type: MessageType.audio,
             content: '',
             media: mediaUrl,
         });
-        await persistMessageWithDelivery(message);
         emitNewMessage(message);
 
         res.status(200).json(genericResponse(true, 'Voice message sent successfully', null, null, message));
@@ -207,14 +273,13 @@ const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
 
         const resolvedType = inferMediaType(file.mimetype, type);
         const mediaUrl = buildMediaUrl(file);
-        const message = new Message({
+        const message = await createAndPersistMessage({
             sender: authUserId,
-            receiver,
+            receiver: String(receiver),
             type: resolvedType,
             content: content || file.originalname || '',
             media: mediaUrl,
         });
-        await persistMessageWithDelivery(message);
         emitNewMessage(message);
 
         res.status(200).json(genericResponse(true, 'Media message sent successfully', null, null, message));

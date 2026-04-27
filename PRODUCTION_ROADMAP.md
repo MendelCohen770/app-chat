@@ -246,10 +246,11 @@
   - [x] `message` — compound index `{ sender, receiver, createdAt }`
   - [x] `otp.email` + TTL index (פג תוקף אוטומטי)
   - [ ] commit: `git commit -m "feat(server): add message and otp indexes for faster queries and OTP TTL cleanup"`
-- [ ] **Conversation Model**
-  - [ ] סכמת `conversation.schema.ts` — `participants[]`, `lastMessage`, `updatedAt`
-  - [ ] עדכון אוטומטי בכל הודעה חדשה
-  - [ ] שאילתות מחירוניות לפי `conversationId`
+- [x] **Conversation Model**
+  - [x] סכמת `conversation.schema.ts` — `participants[]`, `lastMessage`, `updatedAt`
+  - [x] עדכון אוטומטי בכל הודעה חדשה
+  - [x] שאילתות מחירוניות לפי `conversationId`
+  - [ ] commit: `git commit -m "feat(server): add conversations model and message retrieval by conversationId"`
 - [ ] **Pagination**
   - [ ] `getMessages` — limit + cursor (createdAt)
   - [ ] `getAllUsers` — limit + page

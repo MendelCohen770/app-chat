@@ -251,10 +251,11 @@
   - [x] עדכון אוטומטי בכל הודעה חדשה
   - [x] שאילתות מחירוניות לפי `conversationId`
   - [ ] commit: `git commit -m "feat(server): add conversations model and message retrieval by conversationId"`
-- [ ] **Pagination**
-  - [ ] `getMessages` — limit + cursor (createdAt)
-  - [ ] `getAllUsers` — limit + page
-  - [ ] השלמה בצד client (infinite scroll)
+- [x] **Pagination**
+  - [x] `getMessages` — limit + cursor (createdAt)
+  - [x] `getAllUsers` — limit + page
+  - [x] השלמה בצד client (infinite scroll)
+  - [ ] commit: `git commit -m "feat(client): add contacts infinite scroll and complete pagination flow"`
 - [ ] **Soft Delete**
   - [ ] שדה `deletedAt` במשתמשים והודעות
   - [ ] שאילתות מסננות אוטומטית

@@ -131,6 +131,7 @@ const UserPanel = () => {
 
   // keyboard navigation between contacts
   const listRef = useRef<HTMLUListElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
 
   useEffect(() => {
@@ -157,6 +158,25 @@ const UserPanel = () => {
       if (user && setSelectedUser) setSelectedUser(user);
     }
   };
+
+  useEffect(() => {
+    if (!hasMore || isLoadingMore || searchInput.trim()) return;
+    const target = loadMoreRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { root: null, threshold: 0.1, rootMargin: '120px 0px' },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, searchInput, loadMore]);
 
   const renderList = () => {
     if (isLoading) return <LoadingState title={t('chat.loadingContacts')} />;
@@ -241,15 +261,10 @@ const UserPanel = () => {
         })}
       </ul>
       {hasMore && !searchInput && (
-        <div className="flex justify-center p-2">
-          <button
-            type="button"
-            onClick={loadMore}
-            disabled={isLoadingMore}
-            className="px-4 py-2 text-sm rounded-md bg-slate-800 text-slate-100 hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-          >
+        <div ref={loadMoreRef} className="flex justify-center p-2">
+          <span className="text-xs text-slate-400" aria-live="polite">
             {isLoadingMore ? t('chat.loadingContacts') : t('chat.loadMoreContacts')}
-          </button>
+          </span>
         </div>
       )}
       </>

@@ -209,9 +209,10 @@
   - [x] התקנה והגדרת `.prettierrc` משותף לכל הפרויקט
   - [x] script `format` בכל package
   - [x] commit: `git commit -m "chore(format): add shared Prettier config and format scripts for client and server"`
-- [ ] **ESLint לשרת**
-  - [ ] `.eslintrc.cjs` לשרת עם TypeScript ESLint
-  - [ ] חוקים: no-unused-vars, no-explicit-any, consistent-imports
+- [x] **ESLint לשרת**
+  - [x] `.eslintrc.cjs` לשרת עם TypeScript ESLint
+  - [x] חוקים: no-unused-vars, no-explicit-any, consistent-imports
+  - [x] commit: `git commit -m "chore(server): add TypeScript ESLint config and lint script with core rules"`
 - [ ] **Husky + lint-staged**
   - [ ] pre-commit: lint + format על staged files
   - [ ] pre-push: tsc check

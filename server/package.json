@@ -8,6 +8,7 @@
     "prebuild": "npm run clean",
     "build": "tsc",
     "format": "prettier --write .",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint \"src/**/*.ts\"",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -28,6 +29,9 @@
     "@types/node": "^22.9.0",
     "@types/nodemailer": "^6.4.17",
     "@types/socket.io": "^3.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint": "^9.39.4",
     "nodemon": "^3.1.7",
     "prettier": "^3.8.3",
     "rimraf": "^5.0.10",

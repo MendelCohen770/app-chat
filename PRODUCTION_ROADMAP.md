@@ -328,12 +328,12 @@
 
 ## P2.1 — Typing Indicators
 
-- [ ] **Server**
-  - [ ] socket events: `typing:start`, `typing:stop`
-  - [ ] broadcast לחדר השיחה הרלוונטי בלבד
-- [ ] **Client**
-  - [ ] שליחת event ב-`MessageInput` עם debounce 1.5 שניות
-  - [ ] תצוגת `"X is typing..."` ב-`MessageHeader`
+- [x] **Server**
+  - [x] socket events: `typing:start`, `typing:stop`
+  - [x] broadcast לחדר השיחה הרלוונטי בלבד
+- [x] **Client**
+  - [x] שליחת event ב-`MessageInput` עם debounce 1.5 שניות
+  - [x] תצוגת `"X is typing..."` ב-`MessageHeader`
 
 ## P2.2 — Read Receipts
 

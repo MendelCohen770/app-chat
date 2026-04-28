@@ -9,6 +9,10 @@ type ProtectedRouteProps = {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const userContext = useUser();
 
+  if (!userContext?.isHydrated) {
+    return null;
+  }
+
   if (!userContext?.user) {
     return <Navigate to="/" replace />;
   }

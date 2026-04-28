@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { VscEyeClosed, VscEye } from 'react-icons/vsc';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +49,13 @@ const LoginPage: React.FC = () => {
     resolver: zodResolver(otpVerifySchema),
     defaultValues: { otpCode: '' },
   });
+
+  useEffect(() => {
+    if (!userContext?.isHydrated) return;
+    if (userContext.user) {
+      navigate('/home', { replace: true });
+    }
+  }, [userContext?.isHydrated, userContext?.user, navigate]);
 
   const handleSubmit = async (values: LoginFormValues) => {
     setFormError(null);

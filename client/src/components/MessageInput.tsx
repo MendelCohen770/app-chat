@@ -10,6 +10,7 @@ import { useUser } from '../context/useUser';
 import { useChat } from '../context/useChat';
 import apiClient from '../service/apiClient';
 import { emitTypingStart, emitTypingStop } from '../service/socket';
+import { readStorage, removeStorage, STORAGE_KEYS, writeStorage } from '../storage/localStorage';
 
 interface sendMessageProps {
   sendMessage: (message: string) => void;
@@ -58,6 +59,7 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
   };
 
   const selectedUserId = chat?.selectedUser?._id ?? null;
+  const currentUserId = userCtx?.user?._id ?? null;
 
   useEffect(() => {
     const previousReceiver = receiverIdRef.current;
@@ -67,8 +69,24 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
       emitTypingStop(previousReceiver);
     }
     receiverIdRef.current = selectedUserId;
-    setMessage('');
-  }, [selectedUserId]);
+    if (!currentUserId || !selectedUserId) {
+      setMessage('');
+      return;
+    }
+    const draftKey = STORAGE_KEYS.draftMessageByChat(currentUserId, selectedUserId);
+    const draft = readStorage<string>(draftKey);
+    setMessage(typeof draft === 'string' ? draft : '');
+  }, [currentUserId, selectedUserId]);
+
+  useEffect(() => {
+    if (!currentUserId || !selectedUserId) return;
+    const draftKey = STORAGE_KEYS.draftMessageByChat(currentUserId, selectedUserId);
+    if (!message.trim()) {
+      removeStorage(draftKey);
+      return;
+    }
+    writeStorage(draftKey, message);
+  }, [currentUserId, selectedUserId, message]);
 
   useEffect(() => {
     return () => {
@@ -115,6 +133,7 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
       });
       sendMessage(trimmed);
       setMessage('');
+      removeStorage(STORAGE_KEYS.draftMessageByChat(myId, otherId));
       stopTyping();
       inputRef.current?.focus();
     } catch {

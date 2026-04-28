@@ -129,6 +129,16 @@ const getConversationForDm = async (userA: string, userB: string) => {
     return conversation;
 };
 
+/**
+ * Older records may miss conversationId. Before persisting any mutation,
+ * ensure the message is linked to its DM conversation.
+ */
+const ensureMessageConversationId = async (message: any) => {
+    if (message?.conversationId) return;
+    const conversation = await getConversationForDm(String(message.sender), String(message.receiver));
+    message.conversationId = conversation._id;
+};
+
 const createAndPersistMessage = async ({
     sender,
     receiver,
@@ -451,6 +461,7 @@ const editMessage = asyncHandler(async (req: Request, res: Response) => {
         );
     }
 
+    await ensureMessageConversationId(message);
     message.originalContent = message.originalContent || message.content || '';
     message.content = nextContent;
     message.editedAt = new Date();
@@ -484,6 +495,7 @@ const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
         );
     }
 
+    await ensureMessageConversationId(message);
     message.originalContent = message.originalContent || message.content || '';
     message.content = 'ההודעה נמחקה';
     message.isDeleted = true;
@@ -526,6 +538,7 @@ const reactMessage = asyncHandler(async (req: Request, res: Response) => {
             emoji,
         } as any);
     }
+    await ensureMessageConversationId(message);
     message.reactions = currentReactions as any;
     await message.save();
     emitMessageReacted(message);
@@ -555,6 +568,7 @@ const unreactMessage = asyncHandler(async (req: Request, res: Response) => {
     message.reactions = (Array.isArray(message.reactions) ? message.reactions : []).filter(
         (r: any) => !(String(r.userId) === String(authUserId) && String(r.emoji) === emoji),
     ) as any;
+    await ensureMessageConversationId(message);
     await message.save();
     emitMessageReacted(message);
 

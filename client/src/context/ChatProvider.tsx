@@ -3,9 +3,11 @@ import { IUser } from "../models/user";
 import { ChatContext, type ChatReplyTarget } from "./ChatContext";
 import { useUser } from "./useUser";
 import { readStorage, removeStorage, STORAGE_KEYS, writeStorage } from "../storage/localStorage";
+import { IConversation } from "../models/conversation";
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [selectedUser, setSelectedUserState] = useState<IUser | null>(null);
+    const [selectedConversation, setSelectedConversationState] = useState<IConversation | null>(null);
     const [searchOpen, setSearchOpen] = useState<boolean>(false);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [scrollToBottomRequestId, setScrollToBottomRequestId] = useState<number>(0);
@@ -16,6 +18,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const setSelectedUser = useCallback((user: IUser | null) => {
         setSelectedUserState(user);
+        if (user) setSelectedConversationState(null);
+    }, []);
+    const setSelectedConversation = useCallback((conversation: IConversation | null) => {
+        setSelectedConversationState(conversation);
+        if (conversation) setSelectedUserState(null);
     }, []);
 
     const openSearch = useCallback(() => setSearchOpen(true), []);
@@ -43,7 +50,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSearchOpen(false);
         setSearchQuery("");
         setReplyTargetState(null);
-    }, [selectedUser?._id]);
+    }, [selectedUser?._id, selectedConversation?._id]);
 
     useEffect(() => {
         if (!currentUserId) {
@@ -74,6 +81,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             value={{
                 selectedUser,
                 setSelectedUser,
+                selectedConversation,
+                setSelectedConversation,
                 searchOpen,
                 openSearch,
                 closeSearch,

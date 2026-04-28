@@ -12,6 +12,7 @@ import { useChat } from '../context/useChat';
 import apiClient from '../service/apiClient';
 import { emitTypingStart, emitTypingStop } from '../service/socket';
 import { readStorage, removeStorage, STORAGE_KEYS, writeStorage } from '../storage/localStorage';
+import { ConversationType } from '../models/conversation';
 
 interface sendMessageProps {
   sendMessage: (message: string) => void;
@@ -60,6 +61,8 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
   };
 
   const selectedUserId = chat?.selectedUser?._id ?? null;
+  const selectedConversationId = chat?.selectedConversation?._id ?? null;
+  const isGroupChat = chat?.selectedConversation?.type === ConversationType.group;
   const currentUserId = userCtx?.user?._id ?? null;
   const replyTarget = chat?.replyTarget ?? null;
 
@@ -70,25 +73,27 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
       clearIdleTimer();
       emitTypingStop(previousReceiver);
     }
-    receiverIdRef.current = selectedUserId;
-    if (!currentUserId || !selectedUserId) {
+    receiverIdRef.current = isGroupChat ? null : selectedUserId;
+    const draftTargetId = isGroupChat ? selectedConversationId : selectedUserId;
+    if (!currentUserId || !draftTargetId) {
       setMessage('');
       return;
     }
-    const draftKey = STORAGE_KEYS.draftMessageByChat(currentUserId, selectedUserId);
+    const draftKey = STORAGE_KEYS.draftMessageByChat(currentUserId, draftTargetId);
     const draft = readStorage<string>(draftKey);
     setMessage(typeof draft === 'string' ? draft : '');
-  }, [currentUserId, selectedUserId]);
+  }, [currentUserId, selectedUserId, selectedConversationId, isGroupChat]);
 
   useEffect(() => {
-    if (!currentUserId || !selectedUserId) return;
-    const draftKey = STORAGE_KEYS.draftMessageByChat(currentUserId, selectedUserId);
+    const draftTargetId = isGroupChat ? selectedConversationId : selectedUserId;
+    if (!currentUserId || !draftTargetId) return;
+    const draftKey = STORAGE_KEYS.draftMessageByChat(currentUserId, draftTargetId);
     if (!message.trim()) {
       removeStorage(draftKey);
       return;
     }
     writeStorage(draftKey, message);
-  }, [currentUserId, selectedUserId, message]);
+  }, [currentUserId, selectedUserId, selectedConversationId, isGroupChat, message]);
 
   useEffect(() => {
     return () => {
@@ -109,14 +114,14 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
     setMessage((prev) => prev + emojiObject.emoji);
     setShowPicker(false);
     inputRef.current?.focus();
-    const receiverId = chat?.selectedUser?._id;
+    const receiverId = isGroupChat ? null : chat?.selectedUser?._id;
     if (receiverId) notifyTyping(receiverId);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setMessage(value);
-    const receiverId = chat?.selectedUser?._id;
+    const receiverId = isGroupChat ? null : chat?.selectedUser?._id;
     if (!receiverId) return;
     if (value.trim().length > 0) {
       notifyTyping(receiverId);
@@ -128,13 +133,15 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
   const handleSendMessage = async () => {
     const myId = userCtx?.user?._id;
     const otherId = chat?.selectedUser?._id;
+    const conversationId = chat?.selectedConversation?._id;
     const trimmed = message.trim();
-    if (!myId || !otherId || !trimmed) return;
+    if (!myId || !trimmed || (!otherId && !conversationId)) return;
     setSending(true);
     try {
       await apiClient.post('/message/sendMessage', {
         sender: myId,
         receiver: otherId,
+        conversationId,
         type: 'text',
         content: trimmed,
         replyTo: replyTarget?.id,
@@ -143,7 +150,10 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
       setMessage('');
       chat?.clearReplyTarget?.();
       chat?.requestMessageInputFocus?.();
-      removeStorage(STORAGE_KEYS.draftMessageByChat(myId, otherId));
+      const draftChatId = conversationId || otherId;
+      if (draftChatId) {
+        removeStorage(STORAGE_KEYS.draftMessageByChat(myId, draftChatId));
+      }
       stopTyping();
       inputRef.current?.focus();
     } catch {
@@ -191,7 +201,7 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
         </div>
       )}
       <div className="relative flex items-center gap-2 w-full">
-        <MediaUploader />
+        {!isGroupChat && <MediaUploader />}
 
         <button
         type="button"
@@ -234,7 +244,7 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
         {hasText ? (
           <SendButton onSend={handleSendMessage} disabled={sending} />
         ) : (
-          <Recordings />
+          !isGroupChat && <Recordings />
         )}
       </div>
     </div>

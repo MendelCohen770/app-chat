@@ -15,6 +15,7 @@ import {
 import { MessageListSkeleton, EmptyState, ErrorState } from './ui/States';
 import apiClient from '../service/apiClient';
 import { MessageType } from '../models/message';
+import { ConversationType } from '../models/conversation';
 
 type MessageVm = {
   id: string;
@@ -75,14 +76,17 @@ const mapRow = (m: any, myId: string): MessageVm => {
 
 const fetchMessagesPage = async (
   myId: string,
-  otherId: string,
+  otherId: string | null,
+  conversationId: string | null,
   before: string | null,
 ): Promise<MessagesPage> => {
-  const params = new URLSearchParams({
-    sender: myId,
-    receiver: otherId,
-    limit: String(PAGE_SIZE),
-  });
+  const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+  if (conversationId) {
+    params.set('conversationId', conversationId);
+  } else if (otherId) {
+    params.set('sender', myId);
+    params.set('receiver', otherId);
+  }
   if (before) params.set('before', before);
   const res = await apiClient.get(`/message/getMessages?${params.toString()}`);
   const json: any = res.data;
@@ -120,6 +124,9 @@ const MessageList = () => {
   const userCtx = useUser();
   const myId = userCtx?.user?._id;
   const otherId = chat?.selectedUser?._id;
+  const selectedConversation = chat?.selectedConversation ?? null;
+  const conversationId = selectedConversation?._id ?? null;
+  const isGroupChat = selectedConversation?.type === ConversationType.group;
   const rawQuery = chat?.searchQuery || '';
   const searchQuery = rawQuery.trim();
   const scrollReqId = chat?.scrollToBottomRequestId ?? 0;
@@ -131,7 +138,6 @@ const MessageList = () => {
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
   const [highlightedReplyId, setHighlightedReplyId] = useState<string | null>(null);
-  const [hiddenMessageIds, setHiddenMessageIds] = useState<Set<string>>(new Set());
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInitialLoadRef = useRef<boolean>(true);
@@ -149,7 +155,7 @@ const MessageList = () => {
   }, []);
 
   const loadInitial = useCallback(async () => {
-    if (!myId || !otherId) {
+    if (!myId || (!otherId && !conversationId)) {
       setItems([]);
       setNextCursor(null);
       setHasMore(false);
@@ -159,7 +165,7 @@ const MessageList = () => {
     setStatus('loading');
     isInitialLoadRef.current = true;
     try {
-      const page = await fetchMessagesPage(myId, otherId, null);
+      const page = await fetchMessagesPage(myId, otherId || null, conversationId, null);
       setItems(page.items);
       setNextCursor(page.nextCursor);
       setHasMore(page.hasMore);
@@ -167,18 +173,14 @@ const MessageList = () => {
     } catch {
       setStatus('error');
     }
-  }, [myId, otherId]);
+  }, [myId, otherId, conversationId]);
 
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
 
-  useEffect(() => {
-    setHiddenMessageIds(new Set());
-  }, [myId, otherId]);
-
   const loadOlder = useCallback(async () => {
-    if (!myId || !otherId) return;
+    if (!myId || (!otherId && !conversationId)) return;
     if (!hasMore || !nextCursor || isLoadingMore) return;
 
     const container = containerRef.current;
@@ -187,7 +189,7 @@ const MessageList = () => {
 
     setIsLoadingMore(true);
     try {
-      const page = await fetchMessagesPage(myId, otherId, nextCursor);
+      const page = await fetchMessagesPage(myId, otherId || null, conversationId, nextCursor);
       setItems((prev) => {
         if (page.items.length === 0) return prev;
         const existing = new Set(prev.map((m) => m.id));
@@ -209,14 +211,13 @@ const MessageList = () => {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [myId, otherId, hasMore, nextCursor, isLoadingMore]);
+  }, [myId, otherId, conversationId, hasMore, nextCursor, isLoadingMore]);
 
   const filteredItems = useMemo<MessageVm[]>(() => {
-    const visible = items.filter((m) => !hiddenMessageIds.has(m.id));
-    if (!searchQuery) return visible;
+    if (!searchQuery) return items;
     const needle = searchQuery.toLowerCase();
-    return visible.filter((m) => buildHaystack(m).includes(needle));
-  }, [items, searchQuery, hiddenMessageIds]);
+    return items.filter((m) => buildHaystack(m).includes(needle));
+  }, [items, searchQuery]);
 
   // Auto-scroll to the latest message on first load and when new messages arrive,
   // but NOT when we prepend older messages (handled in loadOlder).
@@ -248,7 +249,7 @@ const MessageList = () => {
 
   // Real-time messages: append, but only force-scroll for local outgoing messages.
   useEffect(() => {
-    if (!myId || !otherId) return;
+    if (!myId || (!otherId && !conversationId)) return;
     const handler = (payload: any) => {
       const {
         senderId,
@@ -266,9 +267,10 @@ const MessageList = () => {
         replyTo,
       } =
         payload || {};
-      const relevant =
-        (senderId === myId && receiverId === otherId) ||
-        (senderId === otherId && receiverId === myId);
+      const relevant = conversationId
+        ? String(payload?.conversationId || '') === conversationId
+        : (senderId === myId && receiverId === otherId) ||
+          (senderId === otherId && receiverId === myId);
       if (!relevant) return;
       let appended = false;
       const nextId = String(_id || '');
@@ -311,13 +313,13 @@ const MessageList = () => {
         }
       });
       // Incoming message in the open conversation → immediately mark as read.
-      if (appended && senderId === otherId) {
+      if (appended && senderId === otherId && !isGroupChat && otherId) {
         emitMessagesRead(otherId);
       }
     };
     const unsubscribe = onNewMessage(handler);
     return unsubscribe;
-  }, [myId, otherId]);
+  }, [myId, otherId, conversationId, isGroupChat]);
 
   const scrollToMessageById = useCallback((messageId: string) => {
     if (!messageId) return;
@@ -350,18 +352,8 @@ const MessageList = () => {
     [chat],
   );
 
-  const hideUnavailableMessage = useCallback((messageId: string) => {
-    if (!messageId) return;
-    setHiddenMessageIds((prev) => {
-      if (prev.has(messageId)) return prev;
-      const next = new Set(prev);
-      next.add(messageId);
-      return next;
-    });
-  }, []);
-
   useEffect(() => {
-    if (!myId || !otherId) return;
+    if (!myId || (!otherId && !conversationId)) return;
     const unsubEdited = subscribeToMessageEdited((payload) => {
       const targetId = String(payload._id || '');
       if (!targetId) return;
@@ -386,6 +378,8 @@ const MessageList = () => {
             ? {
                 ...m,
                 text: payload.content || 'ההודעה נמחקה',
+                type: MessageType.text,
+                media: undefined,
                 isDeleted: true,
                 editedAtIso: null,
               }
@@ -415,7 +409,7 @@ const MessageList = () => {
       unsubDeleted();
       unsubReacted();
     };
-  }, [myId, otherId]);
+  }, [myId, otherId, conversationId]);
 
   const editMessage = useCallback(
     async (messageId: string, content: string) => {
@@ -456,6 +450,8 @@ const MessageList = () => {
             ? {
                 ...m,
                 text: 'ההודעה נמחקה',
+                type: MessageType.text,
+                media: undefined,
                 isDeleted: true,
                 editedAtIso: null,
               }
@@ -511,7 +507,7 @@ const MessageList = () => {
 
   // Subscribe to message-status updates (✓✓ delivered / read) for this chat.
   useEffect(() => {
-    if (!myId || !otherId) return;
+    if (!myId || !otherId || isGroupChat) return;
     const unsubscribe = subscribeToMessageStatus((payload: MessageStatusPayload) => {
       // Only care about status for the conversation currently on screen.
       if (payload.peerId !== myId && payload.peerId !== otherId) return;
@@ -531,12 +527,12 @@ const MessageList = () => {
       });
     });
     return unsubscribe;
-  }, [myId, otherId]);
+  }, [myId, otherId, isGroupChat]);
 
   // Mark unread incoming messages as read when they are actually visible on
   // screen. This avoids prematurely marking messages the user hasn't seen yet.
   useEffect(() => {
-    if (!myId || !otherId) return;
+    if (!myId || !otherId || isGroupChat) return;
     if (status !== 'success') return;
     const container = containerRef.current;
     if (!container) return;
@@ -587,7 +583,7 @@ const MessageList = () => {
     const nodes = container.querySelectorAll<HTMLElement>('[data-message-id]');
     nodes.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
-  }, [myId, otherId, status, items]);
+  }, [myId, otherId, status, items, isGroupChat]);
 
   if (status === 'loading') {
     return <MessageListSkeleton />;
@@ -684,7 +680,6 @@ const MessageList = () => {
             onToggleReaction={toggleReaction}
             onReply={() => triggerReply(message)}
             onJumpToMessage={scrollToMessageById}
-            onMediaUnavailable={hideUnavailableMessage}
             myUserId={myId}
             status={
               message.sender === 'me'

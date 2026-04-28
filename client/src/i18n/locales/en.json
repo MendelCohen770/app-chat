@@ -133,6 +133,21 @@
       "scrollToBottom": "Jump to latest",
       "clearSearch": "Clear search"
     },
+    "groups": {
+      "title": "Groups",
+      "create": "New group",
+      "createTitle": "Create group",
+      "groupName": "Group name",
+      "manageMembers": "Manage members",
+      "addMembers": "Add members",
+      "retryLoad": "Reload groups",
+      "createValidation": "Enter a group name and select at least one member",
+      "createSuccess": "Group created successfully",
+      "membersUpdated": "Group members updated",
+      "unnamed": "Unnamed group",
+      "membersCount_one": "1 member",
+      "membersCount_other": "{{count}} members"
+    },
     "contactList": "Contact list",
     "conversation": "Conversation",
     "backToContacts": "Back to contacts",

@@ -8,6 +8,7 @@ import messageRoute from './routes/message.route';
 import healthRoute from './routes/health.route';
 import userRoute from './routes/user.route';
 import uploadsRoute from './routes/uploads.route';
+import conversationRoute from './routes/conversation.route';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { correlationId, httpLogger } from './middlewares/requestContext';
 import { swaggerSpec } from './config/swagger';
@@ -99,6 +100,7 @@ export const createApp = (clientOrigin: string) => {
   app.use('/message/sendMedia', messageRateLimiter);
   app.use('/user', userRoute);
   app.use('/message', messageRoute);
+  app.use('/conversation', conversationRoute);
   app.use('/', healthRoute);
   app.use('/uploads', uploadsRoute);
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

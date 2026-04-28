@@ -5,11 +5,27 @@ import { LuLogOut, LuUser } from 'react-icons/lu';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Popover, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import {
+  Popover,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Chip,
+  Button,
+  Checkbox,
+  FormControlLabel,
+} from '@mui/material';
 import { useChat } from '../context/useChat';
 import { useUser } from '../context/useUser';
 import { usePresence } from '../context/usePresence';
 import { IUser } from '../models/user';
+import { ConversationType, IConversation } from '../models/conversation';
 import { UserListSkeleton, EmptyState, ErrorState } from '../components/ui/States';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
 import { logoutUser, resolveMediaUrl } from '../hooks/UseUser';
@@ -26,6 +42,8 @@ type UsersPage = {
   hasMore: boolean;
 };
 
+type GroupConversation = IConversation;
+
 const fetchUsersPage = async (page: number, limit: number): Promise<UsersPage> => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   const res = await apiClient.get(`/user/getAllUsers?${params.toString()}`);
@@ -41,6 +59,13 @@ const fetchUsersPage = async (page: number, limit: number): Promise<UsersPage> =
   };
 };
 
+const fetchConversations = async (): Promise<IConversation[]> => {
+  const res = await apiClient.get('/conversation/list');
+  const json: any = res.data;
+  const data = Array.isArray(json?.data) ? json.data : [];
+  return data as IConversation[];
+};
+
 const UserPanel = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -53,10 +78,17 @@ const UserPanel = () => {
   const { isOnline } = usePresence();
 
   const [users, setUsers] = useState<IUser[]>([]);
+  const [groupConversations, setGroupConversations] = useState<GroupConversation[]>([]);
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('loading');
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [groupsStatus, setGroupsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('loading');
+  const [createGroupOpen, setCreateGroupOpen] = useState<boolean>(false);
+  const [manageGroupId, setManageGroupId] = useState<string | null>(null);
+  const [groupNameDraft, setGroupNameDraft] = useState<string>('');
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [updatingGroup, setUpdatingGroup] = useState<boolean>(false);
   const isLoading = status === 'loading';
   const isError = status === 'error';
 
@@ -76,6 +108,24 @@ const UserPanel = () => {
   useEffect(() => {
     loadFirstPage();
   }, [loadFirstPage]);
+
+  const loadConversations = useCallback(async () => {
+    setGroupsStatus('loading');
+    try {
+      const list = await fetchConversations();
+      const groups = list.filter(
+        (conversation) => String(conversation.type) === ConversationType.group,
+      ) as GroupConversation[];
+      setGroupConversations(groups);
+      setGroupsStatus('success');
+    } catch {
+      setGroupsStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || isLoadingMore) return;
@@ -119,12 +169,78 @@ const UserPanel = () => {
 
   const setSelectedUser = chatContext?.setSelectedUser;
   const selectedUser = chatContext?.selectedUser;
+  const setSelectedConversation = chatContext?.setSelectedConversation;
+  const selectedConversation = chatContext?.selectedConversation;
 
   const filtered = useMemo(() => {
     const q = searchInput.trim().toLowerCase();
     if (!q) return users;
     return users.filter((u) => u.username?.toLowerCase().includes(q));
   }, [users, searchInput]);
+
+  const filteredGroups = useMemo(() => {
+    const q = searchInput.trim().toLowerCase();
+    if (!q) return groupConversations;
+    return groupConversations.filter((group) => (group.name || '').toLowerCase().includes(q));
+  }, [groupConversations, searchInput]);
+
+  const managedGroup = useMemo(
+    () => groupConversations.find((group) => group._id === manageGroupId) || null,
+    [groupConversations, manageGroupId],
+  );
+
+  const createGroup = async () => {
+    if (!groupNameDraft.trim() || selectedMemberIds.length === 0) {
+      toast.error(t('chat.groups.createValidation'));
+      return;
+    }
+    setUpdatingGroup(true);
+    try {
+      await apiClient.post('/conversation/groups', {
+        name: groupNameDraft.trim(),
+        participantIds: selectedMemberIds,
+      });
+      setCreateGroupOpen(false);
+      setGroupNameDraft('');
+      setSelectedMemberIds([]);
+      await loadConversations();
+      toast.success(t('chat.groups.createSuccess'));
+    } catch {
+      toast.error(t('common.error'));
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const addMembersToGroup = async () => {
+    if (!managedGroup || selectedMemberIds.length === 0) return;
+    setUpdatingGroup(true);
+    try {
+      await apiClient.post(`/conversation/groups/${managedGroup._id}/members`, {
+        participantIds: selectedMemberIds,
+      });
+      setSelectedMemberIds([]);
+      await loadConversations();
+      toast.success(t('chat.groups.membersUpdated'));
+    } catch {
+      toast.error(t('common.error'));
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const removeMemberFromGroup = async (groupId: string, memberId: string) => {
+    setUpdatingGroup(true);
+    try {
+      await apiClient.delete(`/conversation/groups/${groupId}/members/${memberId}`);
+      await loadConversations();
+      toast.success(t('chat.groups.membersUpdated'));
+    } catch {
+      toast.error(t('common.error'));
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
 
   // keyboard navigation between contacts
   const listRef = useRef<HTMLUListElement>(null);
@@ -186,7 +302,7 @@ const UserPanel = () => {
         />
       );
     }
-    if (!filtered.length) {
+    if (!filtered.length && !filteredGroups.length) {
       return (
         <EmptyState
           title={searchInput ? t('chat.noContactsMatch') : t('chat.noContacts')}
@@ -206,7 +322,7 @@ const UserPanel = () => {
         className="flex flex-col gap-0.5 p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded-md"
       >
         {filtered.map((user, idx) => {
-          const isSelected = selectedUser?._id === user._id;
+          const isSelected = !selectedConversation && selectedUser?._id === user._id;
           const isActive = idx === activeIndex;
           const userOnline = isOnline(user._id);
           const statusLabel = userOnline ? t('common.online') : t('common.offline');
@@ -265,6 +381,65 @@ const UserPanel = () => {
           );
         })}
       </ul>
+      <div className="px-2 pb-2">
+        <div className="mb-2 mt-3 flex items-center justify-between">
+          <span className="text-xs uppercase tracking-wide text-slate-400">{t('chat.groups.title')}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setCreateGroupOpen(true);
+              setSelectedMemberIds([]);
+              setGroupNameDraft('');
+            }}
+            className="rounded-md bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-500"
+          >
+            {t('chat.groups.create')}
+          </button>
+        </div>
+        {groupsStatus === 'error' && (
+          <button
+            type="button"
+            onClick={loadConversations}
+            className="w-full rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700"
+          >
+            {t('chat.groups.retryLoad')}
+          </button>
+        )}
+        {groupsStatus !== 'error' &&
+          filteredGroups.map((group) => {
+            const isSelected = selectedConversation?._id === group._id;
+            const canManage = Boolean(group.isAdmin);
+            return (
+              <div key={group._id} className="mb-1 rounded-md border border-slate-700 p-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedConversation && setSelectedConversation(group)}
+                  className={[
+                    'w-full rounded-md px-2 py-1 text-start text-sm',
+                    isSelected ? 'bg-indigo-600 text-white' : 'hover:bg-slate-700 text-slate-100',
+                  ].join(' ')}
+                >
+                  <div className="font-medium truncate">{group.name || t('chat.groups.unnamed')}</div>
+                  <div className="text-xs text-slate-300">
+                    {t('chat.groups.membersCount', { count: group.participants?.length || 0 })}
+                  </div>
+                </button>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManageGroupId(group._id);
+                      setSelectedMemberIds([]);
+                    }}
+                    className="mt-2 w-full rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700"
+                  >
+                    {t('chat.groups.manageMembers')}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+      </div>
       {hasMore && !searchInput && (
         <div ref={loadMoreRef} className="flex justify-center p-2">
           <span className="text-xs text-slate-400" aria-live="polite">
@@ -364,6 +539,98 @@ const UserPanel = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">{renderList()}</div>
+
+      <Dialog open={createGroupOpen} onClose={() => setCreateGroupOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{t('chat.groups.createTitle')}</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            margin="dense"
+            label={t('chat.groups.groupName')}
+            value={groupNameDraft}
+            onChange={(e) => setGroupNameDraft(e.target.value)}
+          />
+          <div className="mt-3 max-h-64 overflow-y-auto rounded border border-slate-200 p-2">
+            {users
+              .filter((user) => user._id !== currentUser?._id)
+              .map((user) => (
+                <FormControlLabel
+                  key={user._id}
+                  control={
+                    <Checkbox
+                      checked={selectedMemberIds.includes(user._id)}
+                      onChange={(e) => {
+                        setSelectedMemberIds((prev) =>
+                          e.target.checked ? [...prev, user._id] : prev.filter((id) => id !== user._id),
+                        );
+                      }}
+                    />
+                  }
+                  label={user.username}
+                />
+              ))}
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateGroupOpen(false)}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={createGroup} disabled={updatingGroup}>
+            {t('chat.groups.create')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(managedGroup)} onClose={() => setManageGroupId(null)} fullWidth maxWidth="sm">
+        <DialogTitle>{t('chat.groups.manageMembers')}</DialogTitle>
+        <DialogContent>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {managedGroup?.participants?.map((member: { _id: string; username: string }) => (
+              <Chip
+                key={member._id}
+                label={member.username}
+                onDelete={
+                  managedGroup?.isAdmin && member._id !== currentUser?._id
+                    ? () => removeMemberFromGroup(managedGroup._id, member._id)
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+          <div className="max-h-56 overflow-y-auto rounded border border-slate-200 p-2">
+            {users
+              .filter((user) =>
+                !(managedGroup?.participants || []).some(
+                  (member: { _id: string; username: string }) => member._id === user._id,
+                ),
+              )
+              .map((user) => (
+                <FormControlLabel
+                  key={user._id}
+                  control={
+                    <Checkbox
+                      checked={selectedMemberIds.includes(user._id)}
+                      onChange={(e) => {
+                        setSelectedMemberIds((prev) =>
+                          e.target.checked ? [...prev, user._id] : prev.filter((id) => id !== user._id),
+                        );
+                      }}
+                    />
+                  }
+                  label={user.username}
+                />
+              ))}
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setManageGroupId(null)}>{t('common.close')}</Button>
+          <Button
+            variant="contained"
+            onClick={addMembersToGroup}
+            disabled={updatingGroup || selectedMemberIds.length === 0 || !managedGroup?.isAdmin}
+          >
+            {t('chat.groups.addMembers')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

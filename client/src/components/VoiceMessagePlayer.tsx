@@ -67,7 +67,7 @@ interface VoiceMessagePlayerProps {
     src: string;
     /** Whether the message was sent by the current user (affects color scheme). */
     isMine: boolean;
-    /** Called when the audio file cannot be loaded (e.g. missing on server). */
+    /** Called when the audio file is missing/unavailable (e.g. 404). */
     onUnavailable?: () => void;
 }
 
@@ -75,16 +75,40 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine, on
     const { t } = useTranslation();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const mountedRef = useRef(true);
+    const unavailableNotifiedRef = useRef(false);
+    const autoPlayOnLoadRef = useRef(false);
 
     const [bars, setBars] = useState<number[]>(() =>
         new Array(PLAYER_BAR_COUNT).fill(0.2),
     );
-    const [loadingWave, setLoadingWave] = useState(true);
+    const [loadingWave, setLoadingWave] = useState(false);
+    const [shouldLoadAudio, setShouldLoadAudio] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState<number>(0);
     const [waveformError, setWaveformError] = useState(false);
-    const unavailableNotifiedRef = useRef(false);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        unavailableNotifiedRef.current = false;
+        autoPlayOnLoadRef.current = false;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        setShouldLoadAudio(false);
+        setLoadingWave(false);
+        setWaveformError(false);
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+        unavailableNotifiedRef.current = false;
+        autoPlayOnLoadRef.current = false;
+        const cached = WAVEFORM_CACHE.get(src);
+        setBars(cached?.bars || new Array(PLAYER_BAR_COUNT).fill(0.2));
+    }, [src]);
 
     const notifyUnavailableOnce = useCallback(() => {
         if (unavailableNotifiedRef.current) return;
@@ -93,15 +117,8 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine, on
     }, [onUnavailable]);
 
     useEffect(() => {
-        mountedRef.current = true;
-        return () => {
-            mountedRef.current = false;
-        };
-    }, []);
-
-    useEffect(() => {
+        if (!shouldLoadAudio) return;
         let cancelled = false;
-        unavailableNotifiedRef.current = false;
         setLoadingWave(true);
         setWaveformError(false);
         decodeWaveform(src)
@@ -118,17 +135,32 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine, on
                 if (cancelled || !mountedRef.current) return;
                 setLoadingWave(false);
                 setWaveformError(true);
-                const status = Number((err as any)?.response?.status || 0);
-                if (status === 404) {
+                const status = Number(err?.response?.status || 0);
+                if (status === 404 || status === 410) {
                     notifyUnavailableOnce();
                 }
             });
         return () => {
             cancelled = true;
         };
-    }, [src, notifyUnavailableOnce]);
+    }, [src, shouldLoadAudio, notifyUnavailableOnce]);
+
+    useEffect(() => {
+        if (!shouldLoadAudio || !autoPlayOnLoadRef.current) return;
+        const audio = audioRef.current;
+        if (!audio) return;
+        autoPlayOnLoadRef.current = false;
+        void audio.play().catch(() => {
+            // Autoplay can fail if media isn't ready yet; user can click again.
+        });
+    }, [shouldLoadAudio, waveformError]);
 
     const togglePlayback = useCallback(() => {
+        if (!shouldLoadAudio) {
+            autoPlayOnLoadRef.current = true;
+            setShouldLoadAudio(true);
+            return;
+        }
         const a = audioRef.current;
         if (!a) return;
         if (a.paused) {
@@ -138,7 +170,7 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine, on
         } else {
             a.pause();
         }
-    }, []);
+    }, [shouldLoadAudio]);
 
     const handleSeek = useCallback(
         (ratio: number) => {
@@ -195,9 +227,9 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine, on
             {waveformError ? (
                 <audio
                     ref={audioRef}
-                    src={src}
+                    src={shouldLoadAudio ? src : undefined}
                     controls
-                    preload="metadata"
+                    preload="none"
                     onError={notifyUnavailableOnce}
                     className="flex-1 max-w-full"
                     aria-label={t('chat.voice.messageLabel')}
@@ -217,12 +249,13 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine, on
                         className={`text-[11px] tabular-nums shrink-0 ${timeClass}`}
                         aria-live="off"
                     >
-                        {loadingWave && duration === 0 ? '--:--' : formatDuration(displayTime)}
+                        {!shouldLoadAudio ? '--:--' : loadingWave && duration === 0 ? '--:--' : formatDuration(displayTime)}
                     </span>
                     <audio
                         ref={audioRef}
-                        src={src}
-                        preload="metadata"
+                        src={shouldLoadAudio ? src : undefined}
+                        preload="none"
+                        onError={notifyUnavailableOnce}
                         onPlay={() => setIsPlaying(true)}
                         onPause={() => setIsPlaying(false)}
                         onEnded={() => {
@@ -249,7 +282,6 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine, on
                             const t = e.currentTarget.currentTime;
                             if (isFinite(t)) setCurrentTime(t);
                         }}
-                        onError={notifyUnavailableOnce}
                         className="hidden"
                     />
                 </>

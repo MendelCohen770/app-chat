@@ -15,7 +15,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onBackToList }) => {
   const chat = useChat();
   const [/* message */, setMessage] = useState<string>('');
 
-  if (!chat?.selectedUser) {
+  if (!chat?.selectedUser && !chat?.selectedConversation) {
     return (
       <div className="bg-slate-900 w-full h-full flex items-center justify-center">
         <EmptyState title={t('chat.selectContact')} />

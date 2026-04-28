@@ -384,16 +384,17 @@
 
 ## P2.6 — צ'אטים קבוצתיים
 
-- [ ] **Conversation Schema**
-  - [ ] `type: 'dm' | 'group'`
-  - [ ] `participants[]`, `admins[]`, `name`, `avatar`
-- [ ] **Server**
-  - [ ] CRUD לקבוצות: יצירה, הוספה/הסרת חברים, עדכון פרטים
-  - [ ] שינוי `message.schema` להשתמש ב-`conversationId` במקום sender/receiver
-- [ ] **Client**
-  - [ ] UI יצירת קבוצה
-  - [ ] רשימת חברים, ניהול חברים (אדמין בלבד)
-  - [ ] הצגה בעמודת השיחות
+- [~] **Conversation Schema**
+  - [~] `type: 'dm' | 'group'`
+  - [~] `participants[]`, `admins[]`, `name`, `avatar`
+- [~] **Server**
+  - [~] CRUD לקבוצות: יצירה, הוספה/הסרת חברים, עדכון פרטים
+  - [~] שינוי `message.schema` להשתמש ב-`conversationId` במקום sender/receiver
+- [~] **Client**
+  - [~] UI יצירת קבוצה
+  - [~] רשימת חברים, ניהול חברים (אדמין בלבד)
+  - [~] הצגה בעמודת השיחות
+- [~] commit: `git commit -m "feat(groups): add group conversation model, APIs, and client group management UI"`
 
 ## P2.7 — חיפוש גלובלי
 

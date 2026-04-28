@@ -11,6 +11,11 @@ export enum MessageType {
   file = 'file',
 }
 
+export enum ConversationType {
+  dm = 'dm',
+  group = 'group',
+}
+
 export interface User {
   _id: string;
   username: string;
@@ -29,7 +34,7 @@ export interface Message {
   _id: string;
   conversationId: string;
   sender: string;
-  receiver: string;
+  receiver?: string | null;
   replyTo?: string | null;
   reactions?: Array<{
     userId: string;
@@ -50,7 +55,11 @@ export interface Message {
 
 export interface Conversation {
   _id: string;
+  type: ConversationType;
   participants: string[];
+  admins?: string[];
+  name?: string;
+  avatar?: string;
   lastMessage?: string | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;

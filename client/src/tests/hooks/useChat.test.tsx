@@ -7,6 +7,8 @@ import { useChat } from '../../context/useChat';
 const createChatValue = (): ChatContextType => ({
   selectedUser: null,
   setSelectedUser: vi.fn(),
+  selectedConversation: null,
+  setSelectedConversation: vi.fn(),
   searchOpen: false,
   openSearch: vi.fn(),
   closeSearch: vi.fn(),
@@ -14,6 +16,11 @@ const createChatValue = (): ChatContextType => ({
   setSearchQuery: vi.fn(),
   scrollToBottomRequestId: 0,
   requestScrollToBottom: vi.fn(),
+  messageInputFocusRequestId: 0,
+  requestMessageInputFocus: vi.fn(),
+  replyTarget: null,
+  setReplyTarget: vi.fn(),
+  clearReplyTarget: vi.fn(),
 });
 
 describe('useChat', () => {

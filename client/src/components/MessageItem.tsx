@@ -37,7 +37,6 @@ interface MessageItemProps {
   onToggleReaction?: (messageId: string, emoji: string, shouldAdd: boolean) => Promise<boolean>;
   onReply?: () => void;
   onJumpToMessage?: (messageId: string) => void;
-  onMediaUnavailable?: (messageId: string) => void;
   myUserId?: string;
 }
 
@@ -156,7 +155,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
   onToggleReaction,
   onReply,
   onJumpToMessage,
-  onMediaUnavailable,
   myUserId,
 }) => {
   const { t } = useTranslation();
@@ -164,13 +162,19 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const isDeleted = Boolean(message.isDeleted);
   const mediaUrl = resolveMediaUrl(message.media);
   const hasMedia = !!mediaUrl;
-  const isAudio = !isDeleted && message.type === 'audio' && hasMedia;
+  const [isMediaUnavailable, setIsMediaUnavailable] = useState(false);
+
+  React.useEffect(() => {
+    setIsMediaUnavailable(false);
+  }, [message.id, mediaUrl, message.type]);
+
+  const isAudio = !isDeleted && !isMediaUnavailable && message.type === 'audio' && hasMedia;
   const isImage = !isDeleted && message.type === 'image' && hasMedia;
   const isVideo = !isDeleted && message.type === 'video' && hasMedia;
   const isFile = !isDeleted && message.type === 'file' && hasMedia;
   const isMediaBubble = isImage || isVideo || isFile;
-  const canEdit = isMine && !isDeleted && !isMediaBubble && !isAudio && typeof onEdit === 'function';
   const canDelete = isMine && !isDeleted && typeof onDelete === 'function';
+  const canEdit = isMine && !isDeleted && !isMediaBubble && !isAudio && typeof onEdit === 'function';
   const canReact = !isDeleted && typeof onToggleReaction === 'function';
   const canReply = !isDeleted && typeof onReply === 'function';
 
@@ -257,6 +261,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
     setIsReactionPickerOpen(false);
   };
 
+  if (!isDeleted && message.type === 'audio' && isMediaUnavailable) {
+    return null;
+  }
+
   return (
     <div className={['w-full flex flex-col gap-1', isMine ? 'items-end' : 'items-start'].join(' ')}>
       <article
@@ -275,7 +283,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             <VoiceMessagePlayer
               src={mediaUrl || ''}
               isMine={isMine}
-              onUnavailable={() => onMediaUnavailable?.(message.id)}
+              onUnavailable={() => setIsMediaUnavailable(true)}
             />
           </div>
         )}
@@ -378,7 +386,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         )}
 
-        {(canEdit || canDelete || canReact || canReply) && !isEditing && (
+        {(canDelete || canEdit || canReact || canReply) && !isEditing && (
           <div className="absolute -top-3 end-2 hidden group-hover:flex items-center gap-1.5 rounded-lg bg-slate-900/90 p-1.5">
             {canReply && (
               <button

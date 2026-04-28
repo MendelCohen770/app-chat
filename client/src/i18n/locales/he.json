@@ -133,6 +133,21 @@
       "scrollToBottom": "גלילה לסוף",
       "clearSearch": "ניקוי חיפוש"
     },
+    "groups": {
+      "title": "קבוצות",
+      "create": "קבוצה חדשה",
+      "createTitle": "יצירת קבוצה",
+      "groupName": "שם קבוצה",
+      "manageMembers": "ניהול חברים",
+      "addMembers": "הוספת חברים",
+      "retryLoad": "טען קבוצות מחדש",
+      "createValidation": "יש להזין שם קבוצה ולבחור לפחות חבר אחד",
+      "createSuccess": "הקבוצה נוצרה בהצלחה",
+      "membersUpdated": "רשימת החברים עודכנה",
+      "unnamed": "קבוצה ללא שם",
+      "membersCount_one": "חבר אחד",
+      "membersCount_other": "{{count}} חברים"
+    },
     "contactList": "רשימת אנשי קשר",
     "conversation": "שיחה",
     "backToContacts": "חזרה לרשימת אנשי הקשר",

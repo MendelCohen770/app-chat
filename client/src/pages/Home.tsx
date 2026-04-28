@@ -16,8 +16,8 @@ export default function Home() {
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
   useEffect(() => {
-    if (chatContext?.selectedUser) setMobileView('chat');
-  }, [chatContext?.selectedUser]);
+    if (chatContext?.selectedUser || chatContext?.selectedConversation) setMobileView('chat');
+  }, [chatContext?.selectedUser, chatContext?.selectedConversation]);
 
   useEffect(() => {
     if (user) connectSocket(user);
@@ -27,6 +27,7 @@ export default function Home() {
   const backToList = () => {
     setMobileView('list');
     chatContext?.setSelectedUser(null);
+    chatContext?.setSelectedConversation(null);
     chatContext?.clearReplyTarget?.();
     chatContext?.closeSearch?.();
   };

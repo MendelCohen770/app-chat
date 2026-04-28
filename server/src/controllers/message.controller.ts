@@ -1,5 +1,5 @@
 import Message from "../models/message.schema";
-import { MessageType } from "../../../shared/types/domain";
+import { ConversationType, MessageType } from "../../../shared/types/domain";
 import Conversation from "../models/conversation.schema";
 import { getIO, isUserOnline } from "../sockets/socket";
 import { Request, Response } from "express";
@@ -17,92 +17,80 @@ const safeUnlink = (p?: string) => {
 const objectIdRegex = /^[a-f\d]{24}$/i;
 const MESSAGE_EDIT_WINDOW_MS = 15 * 60 * 1000;
 
-const emitNewMessage = (message: any) => {
+const emitToConversationParticipants = async (conversationId: string, eventName: string, payload: any) => {
     try {
         const io = getIO();
-        io.to(String(message.sender))
-            .to(String(message.receiver))
-            .emit('newMessage', {
-                _id: message._id,
-                conversationId: String(message.conversationId),
-                senderId: String(message.sender),
-                receiverId: String(message.receiver),
-                replyTo: message.replyTo ? String(message.replyTo) : null,
-                type: message.type,
-                content: message.content,
-                originalContent: message.originalContent || null,
-                media: message.media,
-                createdAt: message.createdAt,
-                deliveredAt: message.deliveredAt || null,
-                readAt: message.readAt || null,
-                editedAt: message.editedAt || null,
-                isDeleted: Boolean(message.isDeleted),
-                reactions: Array.isArray(message.reactions)
-                    ? message.reactions.map((reaction: any) => ({
-                        userId: String(reaction.userId),
-                        emoji: String(reaction.emoji),
-                    }))
-                    : [],
-            });
+        const conversation = await Conversation.findById(conversationId).select('participants');
+        if (!conversation) return;
+        const participantIds = Array.isArray(conversation.participants)
+            ? conversation.participants.map((id: any) => String(id))
+            : [];
+        participantIds.forEach((participantId) => {
+            io.to(participantId).emit(eventName, payload);
+        });
     } catch (_) {
         // socket not ready / not initialised – safe to skip
     }
 };
 
-const emitMessageEdited = (message: any) => {
-    try {
-        const io = getIO();
-        io.to(String(message.sender))
-            .to(String(message.receiver))
-            .emit('message:edited', {
-                _id: String(message._id),
-                content: message.content || '',
-                editedAt: message.editedAt || null,
-                originalContent: message.originalContent || null,
-                senderId: String(message.sender),
-                receiverId: String(message.receiver),
-            });
-    } catch (_) {
-        // socket not ready / not initialised – safe to skip
-    }
+const emitNewMessage = async (message: any) => {
+    await emitToConversationParticipants(String(message.conversationId), 'newMessage', {
+        _id: message._id,
+        conversationId: String(message.conversationId),
+        senderId: String(message.sender),
+        receiverId: message.receiver ? String(message.receiver) : null,
+        replyTo: message.replyTo ? String(message.replyTo) : null,
+        type: message.type,
+        content: message.content,
+        originalContent: message.originalContent || null,
+        media: message.media,
+        createdAt: message.createdAt,
+        deliveredAt: message.deliveredAt || null,
+        readAt: message.readAt || null,
+        editedAt: message.editedAt || null,
+        isDeleted: Boolean(message.isDeleted),
+        reactions: Array.isArray(message.reactions)
+            ? message.reactions.map((reaction: any) => ({
+                userId: String(reaction.userId),
+                emoji: String(reaction.emoji),
+            }))
+            : [],
+    });
 };
 
-const emitMessageDeleted = (message: any) => {
-    try {
-        const io = getIO();
-        io.to(String(message.sender))
-            .to(String(message.receiver))
-            .emit('message:deleted', {
-                _id: String(message._id),
-                content: message.content || '',
-                isDeleted: Boolean(message.isDeleted),
-                senderId: String(message.sender),
-                receiverId: String(message.receiver),
-            });
-    } catch (_) {
-        // socket not ready / not initialised – safe to skip
-    }
+const emitMessageEdited = async (message: any) => {
+    await emitToConversationParticipants(String(message.conversationId), 'message:edited', {
+        _id: String(message._id),
+        content: message.content || '',
+        editedAt: message.editedAt || null,
+        originalContent: message.originalContent || null,
+        senderId: String(message.sender),
+        receiverId: message.receiver ? String(message.receiver) : null,
+    });
 };
 
-const emitMessageReacted = (message: any) => {
-    try {
-        const io = getIO();
-        io.to(String(message.sender))
-            .to(String(message.receiver))
-            .emit('message:reacted', {
-                _id: String(message._id),
-                senderId: String(message.sender),
-                receiverId: String(message.receiver),
-                reactions: Array.isArray(message.reactions)
-                    ? message.reactions.map((reaction: any) => ({
-                        userId: String(reaction.userId),
-                        emoji: String(reaction.emoji),
-                    }))
-                    : [],
-            });
-    } catch (_) {
-        // socket not ready / not initialised – safe to skip
-    }
+const emitMessageDeleted = async (message: any) => {
+    await emitToConversationParticipants(String(message.conversationId), 'message:deleted', {
+        _id: String(message._id),
+        content: message.content || '',
+        isDeleted: Boolean(message.isDeleted),
+        senderId: String(message.sender),
+        receiverId: message.receiver ? String(message.receiver) : null,
+    });
+};
+
+const emitMessageReacted = async (message: any) => {
+    await emitToConversationParticipants(String(message.conversationId), 'message:reacted', {
+        _id: String(message._id),
+        senderId: String(message.sender),
+        receiverId: message.receiver ? String(message.receiver) : null,
+        reactions: Array.isArray(message.reactions)
+            ? message.reactions.map((reaction: any) => ({
+                userId: String(reaction.userId),
+                emoji: String(reaction.emoji),
+            }))
+            : [],
+    });
 };
 
 /**
@@ -110,8 +98,8 @@ const emitMessageReacted = (message: any) => {
  * delivered immediately so the sender sees ✓✓ without waiting for a reconnect.
  */
 const persistMessageWithDelivery = async (message: any) => {
-    const receiverId = String(message.receiver);
-    if (isUserOnline(receiverId)) {
+    const receiverId = message.receiver ? String(message.receiver) : null;
+    if (receiverId && isUserOnline(receiverId)) {
         message.deliveredAt = new Date();
     }
     await message.save();
@@ -120,13 +108,25 @@ const persistMessageWithDelivery = async (message: any) => {
 const getConversationForDm = async (userA: string, userB: string) => {
     const participants = [String(userA), String(userB)].sort();
     let conversation = await Conversation.findOne({
+        type: ConversationType.dm,
         participants: { $all: participants, $size: 2 },
     });
 
     if (!conversation) {
-        conversation = await Conversation.create({ participants });
+        conversation = await Conversation.create({ type: ConversationType.dm, participants });
     }
 
+    return conversation;
+};
+
+const getConversationByIdForParticipant = async (conversationId: string, userId: string) => {
+    const conversation = await Conversation.findOne({
+        _id: conversationId,
+        participants: userId,
+    });
+    if (!conversation) {
+        throw new AppError(403, 'Forbidden', 'You are not a participant of this conversation');
+    }
     return conversation;
 };
 
@@ -143,19 +143,40 @@ const ensureMessageConversationId = async (message: any) => {
 const createAndPersistMessage = async ({
     sender,
     receiver,
+    conversationId,
     type,
     content,
     media,
     replyTo,
 }: {
     sender: string;
-    receiver: string;
+    receiver?: string;
+    conversationId?: string;
     type: MessageType;
     content?: string;
     media?: string;
     replyTo?: string;
 }) => {
-    const conversation = await getConversationForDm(sender, receiver);
+    let conversation: any;
+    let resolvedReceiver: string | null = null;
+    if (conversationId) {
+        conversation = await getConversationByIdForParticipant(conversationId, sender);
+        if (conversation.type === ConversationType.dm) {
+            const peerId = (conversation.participants || [])
+                .map((id: any) => String(id))
+                .find((participantId: string) => participantId !== String(sender));
+            if (!peerId) {
+                throw new AppError(400, 'Invalid conversation', 'DM conversation has no peer participant');
+            }
+            resolvedReceiver = peerId;
+        }
+    } else if (receiver) {
+        conversation = await getConversationForDm(sender, receiver);
+        resolvedReceiver = receiver;
+    } else {
+        throw new AppError(400, 'Invalid request', '`receiver` or `conversationId` is required');
+    }
+
     let replyToId: string | null = null;
     if (replyTo) {
         if (!objectIdRegex.test(replyTo)) {
@@ -175,7 +196,7 @@ const createAndPersistMessage = async ({
     const message = new Message({
         conversationId: conversation._id,
         sender,
-        receiver,
+        receiver: resolvedReceiver,
         replyTo: replyToId,
         type,
         content,
@@ -197,20 +218,21 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(401, 'Authentication failed', 'No authenticated user');
     }
 
-    const { receiver, type, content, media, replyTo } = req.body;
-    if (!receiver || !type) {
+    const { receiver, conversationId, type, content, media, replyTo } = req.body;
+    if ((!receiver && !conversationId) || !type) {
         throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
     }
 
     const message = await createAndPersistMessage({
         sender: authUserId,
-        receiver: String(receiver),
+        receiver: receiver ? String(receiver) : undefined,
+        conversationId: conversationId ? String(conversationId) : undefined,
         type,
         content,
         media,
         replyTo,
     });
-    emitNewMessage(message);
+    await emitNewMessage(message);
 
     res.status(200).json(genericResponse(true, 'Message sent successfully', null, null, message));
 });
@@ -313,8 +335,8 @@ const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
             throw new AppError(401, 'Authentication failed', 'No authenticated user');
         }
 
-        const { receiver, replyTo } = req.body as { receiver?: string; replyTo?: string };
-        if (!receiver) {
+        const { receiver, conversationId, replyTo } = req.body as { receiver?: string; conversationId?: string; replyTo?: string };
+        if (!receiver && !conversationId) {
             throw new AppError(400, 'Please provide all the required fields', 'receiver field is missing');
         }
         if (!file) {
@@ -325,13 +347,14 @@ const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
         const mediaUrl = buildMediaUrl(file);
         const message = await createAndPersistMessage({
             sender: authUserId,
-            receiver: String(receiver),
+            receiver: receiver ? String(receiver) : undefined,
+            conversationId: conversationId ? String(conversationId) : undefined,
             type: MessageType.audio,
             content: '',
             media: mediaUrl,
             replyTo,
         });
-        emitNewMessage(message);
+        await emitNewMessage(message);
 
         res.status(200).json(genericResponse(true, 'Voice message sent successfully', null, null, message));
     } catch (err) {
@@ -361,13 +384,14 @@ const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
             throw new AppError(401, 'Authentication failed', 'No authenticated user');
         }
 
-        const { receiver, type, content, replyTo } = req.body as {
+        const { receiver, conversationId, type, content, replyTo } = req.body as {
             receiver?: string;
+            conversationId?: string;
             type?: string;
             content?: string;
             replyTo?: string;
         };
-        if (!receiver) {
+        if (!receiver && !conversationId) {
             throw new AppError(400, 'Please provide all the required fields', 'receiver field is missing');
         }
         if (!file) {
@@ -379,13 +403,14 @@ const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
         const mediaUrl = buildMediaUrl(file);
         const message = await createAndPersistMessage({
             sender: authUserId,
-            receiver: String(receiver),
+            receiver: receiver ? String(receiver) : undefined,
+            conversationId: conversationId ? String(conversationId) : undefined,
             type: resolvedType,
             content: content || file.originalname || '',
             media: mediaUrl,
             replyTo,
         });
-        emitNewMessage(message);
+        await emitNewMessage(message);
 
         res.status(200).json(genericResponse(true, 'Media message sent successfully', null, null, message));
     } catch (err) {
@@ -495,7 +520,7 @@ const editMessage = asyncHandler(async (req: Request, res: Response) => {
     message.editedAt = new Date();
     await message.save();
 
-    emitMessageEdited(message);
+    await emitMessageEdited(message);
     return res.status(200).json(genericResponse(true, 'Message edited successfully', null, null, message));
 });
 
@@ -530,7 +555,7 @@ const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
     message.editedAt = null;
     await message.save();
 
-    emitMessageDeleted(message);
+    await emitMessageDeleted(message);
     return res.status(200).json(genericResponse(true, 'Message deleted successfully', null, null, message));
 });
 
@@ -569,7 +594,7 @@ const reactMessage = asyncHandler(async (req: Request, res: Response) => {
     await ensureMessageConversationId(message);
     message.reactions = currentReactions as any;
     await message.save();
-    emitMessageReacted(message);
+    await emitMessageReacted(message);
 
     return res.status(200).json(genericResponse(true, 'Message reacted successfully', null, null, message));
 });
@@ -598,7 +623,7 @@ const unreactMessage = asyncHandler(async (req: Request, res: Response) => {
     ) as any;
     await ensureMessageConversationId(message);
     await message.save();
-    emitMessageReacted(message);
+    await emitMessageReacted(message);
 
     return res.status(200).json(genericResponse(true, 'Message reaction removed successfully', null, null, message));
 });

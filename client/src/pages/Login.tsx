@@ -8,9 +8,17 @@ import { IResponse } from '../models/response';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/useUser';
 import { IUser } from '../models/user';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
+import { loginSchema, otpRequestSchema, otpVerifySchema } from '../validation/forms';
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+type OtpRequestValues = z.infer<typeof otpRequestSchema>;
+type OtpVerifyValues = z.infer<typeof otpVerifySchema>;
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
@@ -19,12 +27,8 @@ type OtpStep = 'request' | 'verify';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
-  const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState<LoginMode>('password');
-  const [otpEmail, setOtpEmail] = useState<string>('');
-  const [otpCode, setOtpCode] = useState<string>('');
   const [otpStep, setOtpStep] = useState<OtpStep>('request');
   const [otpLoading, setOtpLoading] = useState<boolean>(false);
   const [otpMessage, setOtpMessage] = useState<string | null>(null);
@@ -33,16 +37,23 @@ const LoginPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const userContext = useUser();
   const navigate = useNavigate();
+  const loginForm = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: '', password: '' },
+  });
+  const otpRequestForm = useForm<OtpRequestValues>({
+    resolver: zodResolver(otpRequestSchema),
+    defaultValues: { otpEmail: '' },
+  });
+  const otpVerifyForm = useForm<OtpVerifyValues>({
+    resolver: zodResolver(otpVerifySchema),
+    defaultValues: { otpCode: '' },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (values: LoginFormValues) => {
     setFormError(null);
-    if (!username || !password) {
-      setFormError(t('auth.messages.fillAllFields'));
-      return;
-    }
     setLoginLoading(true);
-    const res: IResponse = await login(username, password);
+    const res: IResponse = await login(values.username.trim(), values.password);
     setLoginLoading(false);
     if (!res.isSuccessful) {
       const msg = res.displayMessage || t('auth.messages.genericFailure');
@@ -59,8 +70,7 @@ const LoginPage: React.FC = () => {
     if (res.data && typeof res.data === 'object' && '_id' in (res.data as any)) {
       saveUser(res.data as IUser);
       toast.success(t('auth.messages.loginSuccess'));
-      setUsername('');
-      setPassword('');
+      loginForm.reset();
       navigate('/home');
     } else {
       toast.error(t('auth.messages.genericFailure'));
@@ -92,41 +102,35 @@ const LoginPage: React.FC = () => {
   const switchMode = (next: LoginMode) => {
     setMode(next);
     setOtpStep('request');
-    setOtpCode('');
     setOtpMessage(null);
     setOtpError(null);
     setFormError(null);
+    otpRequestForm.reset();
+    otpVerifyForm.reset();
   };
 
-  const handleRequestOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRequestOtp = async (values: OtpRequestValues) => {
     setOtpError(null);
     setOtpMessage(null);
-    if (!otpEmail) {
-      setOtpError(t('auth.messages.enterEmail'));
-      return;
-    }
     setOtpLoading(true);
-    const res: IResponse = await requestOtp(otpEmail);
+    const email = values.otpEmail.trim();
+    const res: IResponse = await requestOtp(email);
     setOtpLoading(false);
     if (!res.isSuccessful) {
       setOtpError(res.displayMessage || t('auth.messages.otpFailed'));
       return;
     }
     setOtpStep('verify');
+    otpRequestForm.setValue('otpEmail', email);
     setOtpMessage(res.displayMessage || t('auth.messages.otpSent'));
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifyOtp = async (values: OtpVerifyValues) => {
     setOtpError(null);
     setOtpMessage(null);
-    if (!otpCode) {
-      setOtpError(t('auth.messages.enterOtp'));
-      return;
-    }
     setOtpLoading(true);
-    const res: IResponse = await verifyOtp(otpEmail, otpCode);
+    const otpEmail = otpRequestForm.getValues('otpEmail');
+    const res: IResponse = await verifyOtp(otpEmail, values.otpCode.trim());
     setOtpLoading(false);
     if (!res.isSuccessful) {
       setOtpError(res.displayMessage || t('auth.messages.otpInvalid'));
@@ -137,8 +141,8 @@ const LoginPage: React.FC = () => {
     if (res.data && typeof res.data === 'object' && '_id' in (res.data as any)) {
       saveUser(res.data as IUser);
       toast.success(t('auth.messages.loginSuccess'));
-      setOtpEmail('');
-      setOtpCode('');
+      otpRequestForm.reset();
+      otpVerifyForm.reset();
       setOtpStep('request');
       navigate('/home');
     } else {
@@ -149,6 +153,7 @@ const LoginPage: React.FC = () => {
   const handleResendOtp = async () => {
     setOtpError(null);
     setOtpMessage(null);
+    const otpEmail = otpRequestForm.getValues('otpEmail');
     if (!otpEmail) {
       setOtpError(t('auth.messages.enterEmail'));
       return;
@@ -217,7 +222,7 @@ const LoginPage: React.FC = () => {
             id="panel-password"
             role="tabpanel"
             aria-labelledby="tab-password"
-            onSubmit={handleSubmit}
+            onSubmit={loginForm.handleSubmit(handleSubmit)}
             className="space-y-4"
             noValidate
           >
@@ -227,10 +232,9 @@ const LoginPage: React.FC = () => {
               label={t('auth.fields.username')}
               placeholder={t('auth.fields.usernamePlaceholder')}
               autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              {...loginForm.register('username')}
               required
-              error={formError && !username ? t('auth.messages.fillAllFields') : null}
+              error={loginForm.formState.errors.username ? t('auth.messages.fillAllFields') : null}
             />
 
             <Input
@@ -240,10 +244,9 @@ const LoginPage: React.FC = () => {
               label={t('auth.fields.password')}
               placeholder={t('auth.fields.passwordPlaceholder')}
               autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              {...loginForm.register('password')}
               required
-              error={formError && !password ? t('auth.messages.fillAllFields') : null}
+              error={loginForm.formState.errors.password ? t('auth.messages.fillAllFields') : null}
               trailing={
                 <button
                   type="button"
@@ -257,7 +260,7 @@ const LoginPage: React.FC = () => {
               }
             />
 
-            {formError && username && password && (
+            {formError && (
               <p role="alert" className="text-sm text-red-400 text-center">
                 {formError}
               </p>
@@ -296,7 +299,11 @@ const LoginPage: React.FC = () => {
             id="panel-otp"
             role="tabpanel"
             aria-labelledby="tab-otp"
-            onSubmit={otpStep === 'request' ? handleRequestOtp : handleVerifyOtp}
+            onSubmit={
+              otpStep === 'request'
+                ? otpRequestForm.handleSubmit(handleRequestOtp)
+                : otpVerifyForm.handleSubmit(handleVerifyOtp)
+            }
             className="space-y-4"
             noValidate
           >
@@ -307,10 +314,14 @@ const LoginPage: React.FC = () => {
               label={t('auth.fields.email')}
               placeholder={t('auth.fields.emailPlaceholder')}
               autoComplete="email"
-              value={otpEmail}
-              onChange={(e) => setOtpEmail(e.target.value)}
+              {...otpRequestForm.register('otpEmail')}
               disabled={otpStep === 'verify'}
               required
+              error={
+                otpRequestForm.formState.errors.otpEmail
+                  ? t('profile.messages.emailInvalid')
+                  : null
+              }
             />
 
             {otpStep === 'verify' && (
@@ -322,10 +333,10 @@ const LoginPage: React.FC = () => {
                 autoComplete="one-time-code"
                 label={t('auth.fields.otpCode')}
                 placeholder={t('auth.fields.otpCodePlaceholder')}
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
+                {...otpVerifyForm.register('otpCode')}
                 required
                 className="tracking-widest text-center"
+                error={otpVerifyForm.formState.errors.otpCode ? t('auth.messages.enterOtp') : null}
               />
             )}
 
@@ -355,7 +366,7 @@ const LoginPage: React.FC = () => {
                   size="sm"
                   onClick={() => {
                     setOtpStep('request');
-                    setOtpCode('');
+                    otpVerifyForm.reset();
                     setOtpError(null);
                     setOtpMessage(null);
                   }}

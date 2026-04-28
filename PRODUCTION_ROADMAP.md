@@ -293,9 +293,10 @@
 - [x] **Loading & Error States אחידים**
   - [x] Skeleton loaders ל-MessageList, UserList
   - [x] Error states מעוצבים
-- [ ] **Form Validation אחיד**
-  - [ ] React Hook Form + Zod resolver
-  - [ ] שימוש בכל הטפסים (Login, Signup, Profile, ChangePassword)
+- [x] **Form Validation אחיד**
+  - [x] React Hook Form + Zod resolver
+  - [x] שימוש בכל הטפסים (Login, Signup, Profile, ChangePassword)
+  - [x] commit: `git commit -m "refactor(forms): unify validation with react-hook-form and zod across auth and profile flows"`
 - [ ] **TypeScript types חזקים**
   - [ ] שיתוף types בין client ל-server (תיקיית `shared/` או package)
   - [ ] להגדיר `User`, `Message`, `Conversation` כ-types יחידים

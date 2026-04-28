@@ -3,44 +3,62 @@ import { VscEyeClosed, VscEye } from 'react-icons/vsc';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { signup } from '../hooks/UseUser';
 import { ISignup } from '../models/signup';
 import { IResponse } from '../models/response';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
+import { signupSchema } from '../validation/forms';
+
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 const Signup = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [phone, setPhone] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [mismatch, setMismatch] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      phone: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const toFieldError = (name: 'username' | 'email' | 'phone' | 'password' | 'confirmPassword') => {
+    const code = errors[name]?.message;
+    if (!code) return null;
+    if (code === 'password_mismatch') return t('auth.messages.passwordsDoNotMatch');
+    if (code === 'username_short') return t('profile.messages.usernameShort');
+    if (code === 'email_invalid') return t('profile.messages.emailInvalid');
+    if (code === 'phone_invalid') return t('profile.messages.phoneInvalid');
+    return t('auth.messages.fillAllFields');
+  };
+
+  const onSubmit = async (values: SignupFormValues) => {
     setFormError(null);
-    setMismatch(false);
 
-    if (!username || !email || !password || !confirmPassword || !phone) {
-      setFormError(t('auth.messages.fillAllFields'));
-      return;
-    }
-    if (password !== confirmPassword) {
-      setMismatch(true);
-      setFormError(t('auth.messages.passwordsDoNotMatch'));
-      return;
-    }
-
-    const user: ISignup = { username, password, email, phone };
+    const user: ISignup = {
+      username: values.username.trim(),
+      email: values.email.trim(),
+      phone: values.phone.trim(),
+      password: values.password,
+    };
     setLoading(true);
     const response: IResponse = await signup(user);
     setLoading(false);
@@ -52,11 +70,7 @@ const Signup = () => {
       return;
     }
     toast.success(t('auth.messages.signupSuccess'));
-    setUsername('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    setPhone('');
+    reset();
     navigate('/');
   };
 
@@ -73,7 +87,7 @@ const Signup = () => {
           <LanguageSwitcher />
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <Input
             id="username"
             name="username"
@@ -81,9 +95,9 @@ const Signup = () => {
             placeholder={t('auth.fields.usernamePlaceholder')}
             autoComplete="username"
             minLength={3}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            {...register('username')}
             required
+            error={toFieldError('username')}
           />
           <Input
             id="email"
@@ -92,9 +106,9 @@ const Signup = () => {
             label={t('auth.fields.email')}
             placeholder={t('auth.fields.emailPlaceholder')}
             autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            {...register('email')}
             required
+            error={toFieldError('email')}
           />
           <Input
             id="phone"
@@ -103,9 +117,9 @@ const Signup = () => {
             label={t('auth.fields.phone')}
             placeholder={t('auth.fields.phonePlaceholder')}
             autoComplete="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            {...register('phone')}
             required
+            error={toFieldError('phone')}
           />
           <Input
             id="password"
@@ -114,10 +128,9 @@ const Signup = () => {
             label={t('auth.fields.password')}
             placeholder={t('auth.fields.passwordPlaceholder')}
             autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            {...register('password')}
             required
-            error={mismatch ? t('auth.messages.passwordsDoNotMatch') : null}
+            error={toFieldError('password')}
             trailing={
               <button
                 type="button"
@@ -137,10 +150,9 @@ const Signup = () => {
             label={t('auth.fields.confirmPassword')}
             placeholder={t('auth.fields.confirmPasswordPlaceholder')}
             autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            {...register('confirmPassword')}
             required
-            error={mismatch ? t('auth.messages.passwordsDoNotMatch') : null}
+            error={toFieldError('confirmPassword')}
             trailing={
               <button
                 type="button"
@@ -154,7 +166,7 @@ const Signup = () => {
             }
           />
 
-          {formError && !mismatch && (
+          {formError && (
             <p role="alert" className="text-sm text-red-400 text-center">
               {formError}
             </p>

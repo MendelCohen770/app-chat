@@ -5,6 +5,9 @@ import toast from 'react-hot-toast';
 import { IoArrowBack, IoArrowForward } from 'react-icons/io5';
 import { LuCamera } from 'react-icons/lu';
 import { VscEye, VscEyeClosed } from 'react-icons/vsc';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useUser } from '../context/useUser';
 import { IUser } from '../models/user';
 import { IResponse } from '../models/response';
@@ -19,15 +22,15 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
 import { isRtlLanguage } from '../i18n';
+import { profileDetailsSchema, profilePasswordSchema } from '../validation/forms';
+
+type ProfileDetailsValues = z.infer<typeof profileDetailsSchema>;
+type ProfilePasswordValues = z.infer<typeof profilePasswordSchema>;
 
 const DEFAULT_AVATAR =
     'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg';
 const MAX_AVATAR_SIZE = 3 * 1024 * 1024; // 3 MB
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-
-const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const phoneRegex = /^[0-9+\-]{9,14}$/;
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
 const Profile: React.FC = () => {
     const { t, i18n } = useTranslation();
@@ -38,9 +41,6 @@ const Profile: React.FC = () => {
 
     const user = userContext?.user as IUser | null;
 
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
     const [profileError, setProfileError] = useState<string | null>(null);
     const [profileSaving, setProfileSaving] = useState(false);
 
@@ -48,9 +48,6 @@ const Profile: React.FC = () => {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [showCurrent, setShowCurrent] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -58,6 +55,14 @@ const Profile: React.FC = () => {
     const [passwordSaving, setPasswordSaving] = useState(false);
 
     const [loggingOut, setLoggingOut] = useState(false);
+    const detailsForm = useForm<ProfileDetailsValues>({
+        resolver: zodResolver(profileDetailsSchema),
+        defaultValues: { username: '', email: '', phone: '' },
+    });
+    const passwordForm = useForm<ProfilePasswordValues>({
+        resolver: zodResolver(profilePasswordSchema),
+        defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
+    });
 
     useEffect(() => {
         if (!userContext || !user) {
@@ -67,9 +72,11 @@ const Profile: React.FC = () => {
 
     useEffect(() => {
         if (!user) return;
-        setUsername(user.username ?? '');
-        setEmail(user.email ?? '');
-        setPhone(user.phone ?? '');
+        detailsForm.reset({
+            username: user.username ?? '',
+            email: user.email ?? '',
+            phone: user.phone ?? '',
+        });
     }, [user]);
 
     const avatarSrc = useMemo(() => {
@@ -119,36 +126,14 @@ const Profile: React.FC = () => {
         toast.success(t('profile.messages.avatarUpdated'));
     };
 
-    const handleProfileSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleProfileSubmit = async (values: ProfileDetailsValues) => {
         setProfileError(null);
-
-        const trimmedUsername = username.trim();
-        const trimmedEmail = email.trim();
-        const trimmedPhone = phone.trim();
-
-        if (!trimmedUsername || !trimmedEmail || !trimmedPhone) {
-            setProfileError(t('auth.messages.fillAllFields'));
-            return;
-        }
-        if (trimmedUsername.length < 2) {
-            setProfileError(t('profile.messages.usernameShort'));
-            return;
-        }
-        if (!emailRegex.test(trimmedEmail)) {
-            setProfileError(t('profile.messages.emailInvalid'));
-            return;
-        }
-        if (!phoneRegex.test(trimmedPhone)) {
-            setProfileError(t('profile.messages.phoneInvalid'));
-            return;
-        }
 
         setProfileSaving(true);
         const res: IResponse = await updateUserProfile({
-            username: trimmedUsername,
-            email: trimmedEmail,
-            phone: trimmedPhone,
+            username: values.username.trim(),
+            email: values.email.trim(),
+            phone: values.phone.trim(),
         });
         setProfileSaving(false);
 
@@ -162,25 +147,11 @@ const Profile: React.FC = () => {
         toast.success(t('profile.messages.saved'));
     };
 
-    const handlePasswordSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handlePasswordSubmit = async (values: ProfilePasswordValues) => {
         setPasswordError(null);
 
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            setPasswordError(t('auth.messages.fillAllFields'));
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            setPasswordError(t('auth.messages.passwordsDoNotMatch'));
-            return;
-        }
-        if (!passwordRegex.test(newPassword)) {
-            setPasswordError(t('profile.messages.passwordWeak'));
-            return;
-        }
-
         setPasswordSaving(true);
-        const res: IResponse = await changePasswordApi(currentPassword, newPassword);
+        const res: IResponse = await changePasswordApi(values.currentPassword, values.newPassword);
         setPasswordSaving(false);
 
         if (!res.isSuccessful) {
@@ -189,9 +160,7 @@ const Profile: React.FC = () => {
             toast.error(msg);
             return;
         }
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
+        passwordForm.reset();
         toast.success(t('profile.messages.passwordUpdated'));
     };
 
@@ -294,7 +263,7 @@ const Profile: React.FC = () => {
                     >
                         {t('profile.details.title')}
                     </h2>
-                    <form onSubmit={handleProfileSubmit} className="space-y-4" noValidate>
+                    <form onSubmit={detailsForm.handleSubmit(handleProfileSubmit)} className="space-y-4" noValidate>
                         <Input
                             id="profile-username"
                             name="username"
@@ -302,9 +271,13 @@ const Profile: React.FC = () => {
                             placeholder={t('auth.fields.usernamePlaceholder')}
                             autoComplete="username"
                             minLength={2}
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            {...detailsForm.register('username')}
                             required
+                            error={
+                                detailsForm.formState.errors.username
+                                    ? t('profile.messages.usernameShort')
+                                    : null
+                            }
                         />
                         <Input
                             id="profile-email"
@@ -313,9 +286,13 @@ const Profile: React.FC = () => {
                             label={t('auth.fields.email')}
                             placeholder={t('auth.fields.emailPlaceholder')}
                             autoComplete="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            {...detailsForm.register('email')}
                             required
+                            error={
+                                detailsForm.formState.errors.email
+                                    ? t('profile.messages.emailInvalid')
+                                    : null
+                            }
                         />
                         <Input
                             id="profile-phone"
@@ -324,9 +301,13 @@ const Profile: React.FC = () => {
                             label={t('auth.fields.phone')}
                             placeholder={t('auth.fields.phonePlaceholder')}
                             autoComplete="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
+                            {...detailsForm.register('phone')}
                             required
+                            error={
+                                detailsForm.formState.errors.phone
+                                    ? t('profile.messages.phoneInvalid')
+                                    : null
+                            }
                         />
 
                         {profileError && (
@@ -358,16 +339,20 @@ const Profile: React.FC = () => {
                             {t('profile.password.googleOnly')}
                         </p>
                     ) : (
-                        <form onSubmit={handlePasswordSubmit} className="space-y-4" noValidate>
+                        <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4" noValidate>
                             <Input
                                 id="profile-current-password"
                                 name="currentPassword"
                                 type={showCurrent ? 'text' : 'password'}
                                 label={t('profile.password.current')}
                                 autoComplete="current-password"
-                                value={currentPassword}
-                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                {...passwordForm.register('currentPassword')}
                                 required
+                                error={
+                                    passwordForm.formState.errors.currentPassword
+                                        ? t('auth.messages.fillAllFields')
+                                        : null
+                                }
                                 trailing={
                                     <button
                                         type="button"
@@ -395,9 +380,13 @@ const Profile: React.FC = () => {
                                 label={t('profile.password.new')}
                                 autoComplete="new-password"
                                 hint={t('profile.password.hint')}
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
+                                {...passwordForm.register('newPassword')}
                                 required
+                                error={
+                                    passwordForm.formState.errors.newPassword
+                                        ? t('profile.messages.passwordWeak')
+                                        : null
+                                }
                                 trailing={
                                     <button
                                         type="button"
@@ -424,9 +413,16 @@ const Profile: React.FC = () => {
                                 type={showConfirm ? 'text' : 'password'}
                                 label={t('profile.password.confirm')}
                                 autoComplete="new-password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                {...passwordForm.register('confirmPassword')}
                                 required
+                                error={
+                                    passwordForm.formState.errors.confirmPassword?.message ===
+                                    'password_mismatch'
+                                        ? t('auth.messages.passwordsDoNotMatch')
+                                        : passwordForm.formState.errors.confirmPassword
+                                          ? t('auth.messages.fillAllFields')
+                                          : null
+                                }
                                 trailing={
                                     <button
                                         type="button"

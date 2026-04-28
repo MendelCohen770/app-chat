@@ -313,8 +313,12 @@
   - [x] Swagger / OpenAPI
   - [x] route `/api/docs`
   - [x] commit: `git commit -m "docs(server): add Swagger OpenAPI docs endpoint at /api/docs"`
-- [ ] **CONTRIBUTING.md** (אם open source)
-- [ ] **LICENSE**
+- [x] **CONTRIBUTING.md** (אם open source)
+  - [x] להוסיף הנחיות setup, סטנדרט commits, איכות קוד ו-PR checklist
+  - [x] commit: `git commit -m "docs(repo): add CONTRIBUTING guide for setup, quality checks, and PR workflow"`
+- [x] **LICENSE**
+  - [x] להוסיף `MIT License` ברמת הריפו
+  - [x] commit: `git commit -m "docs(repo): add MIT license file"`
 
 ---
 

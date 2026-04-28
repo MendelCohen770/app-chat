@@ -8,9 +8,61 @@ import { sendMediaBodySchema, sendMessageBodySchema, sendVoiceBodySchema } from 
 
 const messageRoute = express.Router();
 
+/**
+ * @openapi
+ * /message/sendMessage:
+ *   post:
+ *     tags:
+ *       - Message
+ *     summary: Send a text message
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Message sent successfully
+ */
 messageRoute.post('/sendMessage', authMiddleware, validateBody(sendMessageBodySchema), sendMessage);
+/**
+ * @openapi
+ * /message/getMessages:
+ *   get:
+ *     tags:
+ *       - Message
+ *     summary: Get conversation messages
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Messages retrieved successfully
+ */
 messageRoute.get('/getMessages', authMiddleware, getMessages);
+/**
+ * @openapi
+ * /message/sendVoice:
+ *   post:
+ *     tags:
+ *       - Message
+ *     summary: Send a voice message
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Voice message sent successfully
+ */
 messageRoute.post('/sendVoice', authMiddleware, voiceUpload, validateBody(sendVoiceBodySchema), sendVoiceMessage);
+/**
+ * @openapi
+ * /message/sendMedia:
+ *   post:
+ *     tags:
+ *       - Message
+ *     summary: Send a media message
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Media message sent successfully
+ */
 messageRoute.post('/sendMedia', authMiddleware, chatMediaUpload, validateBody(sendMediaBodySchema), sendMediaMessage);
 
 export default messageRoute;

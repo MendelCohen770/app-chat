@@ -31,30 +31,7 @@ export const swaggerSpec = swaggerJsdoc({
         },
       },
     },
-    paths: {
-      '/health': {
-        get: {
-          tags: ['Health'],
-          summary: 'Health check',
-          responses: {
-            200: {
-              description: 'Server is healthy',
-            },
-          },
-        },
-      },
-      '/ready': {
-        get: {
-          tags: ['Health'],
-          summary: 'Readiness check',
-          responses: {
-            200: {
-              description: 'Server is ready',
-            },
-          },
-        },
-      },
-    },
+    paths: {},
   },
-  apis: [],
+  apis: ['./src/routes/*.ts'],
 });

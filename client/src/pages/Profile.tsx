@@ -266,7 +266,6 @@ const Profile: React.FC = () => {
                     <form onSubmit={detailsForm.handleSubmit(handleProfileSubmit)} className="space-y-4" noValidate>
                         <Input
                             id="profile-username"
-                            name="username"
                             label={t('auth.fields.username')}
                             placeholder={t('auth.fields.usernamePlaceholder')}
                             autoComplete="username"
@@ -281,7 +280,6 @@ const Profile: React.FC = () => {
                         />
                         <Input
                             id="profile-email"
-                            name="email"
                             type="email"
                             label={t('auth.fields.email')}
                             placeholder={t('auth.fields.emailPlaceholder')}
@@ -296,7 +294,6 @@ const Profile: React.FC = () => {
                         />
                         <Input
                             id="profile-phone"
-                            name="phone"
                             type="tel"
                             label={t('auth.fields.phone')}
                             placeholder={t('auth.fields.phonePlaceholder')}
@@ -342,7 +339,6 @@ const Profile: React.FC = () => {
                         <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4" noValidate>
                             <Input
                                 id="profile-current-password"
-                                name="currentPassword"
                                 type={showCurrent ? 'text' : 'password'}
                                 label={t('profile.password.current')}
                                 autoComplete="current-password"
@@ -375,7 +371,6 @@ const Profile: React.FC = () => {
                             />
                             <Input
                                 id="profile-new-password"
-                                name="newPassword"
                                 type={showNew ? 'text' : 'password'}
                                 label={t('profile.password.new')}
                                 autoComplete="new-password"
@@ -409,7 +404,6 @@ const Profile: React.FC = () => {
                             />
                             <Input
                                 id="profile-confirm-password"
-                                name="confirmPassword"
                                 type={showConfirm ? 'text' : 'password'}
                                 label={t('profile.password.confirm')}
                                 autoComplete="new-password"

@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../config/env';
 
@@ -27,7 +27,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  (error: any) => {
     const status = error.response?.status;
     if (status && AUTH_ERROR_STATUSES.has(status)) {
       redirectToLogin();

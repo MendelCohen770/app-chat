@@ -1,27 +1,28 @@
 FROM node:20-alpine AS builder
-WORKDIR /app
+WORKDIR /app/server
 
-COPY package*.json ./
+COPY server/package*.json ./
 RUN npm ci
 
-COPY tsconfig.json ./
-COPY src ./src
+COPY server/tsconfig*.json ./
+COPY server/src ./src
+COPY shared ../shared
 RUN npm run build
 
 FROM node:20-alpine AS runner
-WORKDIR /app
+WORKDIR /app/server
 
 ENV NODE_ENV=production
 
-COPY package*.json ./
+COPY server/package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/server/dist ./dist
 RUN mkdir -p uploads && chown -R node:node /app
 
 EXPOSE 3000
-VOLUME ["/app/uploads"]
+VOLUME ["/app/server/uploads"]
 
 USER node
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server/src/index.js"]

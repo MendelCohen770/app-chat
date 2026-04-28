@@ -7,6 +7,9 @@ export interface Imessage extends Document, Omit<SharedMessage, '_id' | 'convers
     receiver: Schema.Types.ObjectId,
     deliveredAt?: Date | null,
     readAt?: Date | null,
+    editedAt?: Date | null,
+    originalContent?: string | null,
+    isDeleted?: boolean,
     deletedAt?: Date | null,
     createdAt?: Date,
     updatedAt?: Date,
@@ -18,9 +21,12 @@ const MessageSchema = new Schema<Imessage>({
     receiver: {type: Schema.Types.ObjectId, required: true},
     type: {type: String, enum: [MessageType.text, MessageType.image, MessageType.video, MessageType.audio, MessageType.file], default: MessageType.text},
     content: {type: String, required: false},
+    originalContent: { type: String, default: null },
     media: {type: String, required: false},
     deliveredAt: {type: Date, default: null},
     readAt: {type: Date, default: null},
+    editedAt: { type: Date, default: null },
+    isDeleted: { type: Boolean, default: false },
     deletedAt: {type: Date, default: null},
 },{ timestamps: true});
 

@@ -202,3 +202,46 @@ export const emitMessagesRead = (peerId: string) => {
     if (!socket || !peerId) return;
     socket.emit('message:read', { peerId });
 };
+
+export type MessageEditedPayload = {
+    _id: string;
+    content: string;
+    editedAt?: string | null;
+    originalContent?: string | null;
+    senderId?: string;
+    receiverId?: string;
+};
+
+export const subscribeToMessageEdited = (
+    handler: (payload: MessageEditedPayload) => void,
+): (() => void) => {
+    if (!socket) return () => {};
+    const s = socket;
+    const wrapped = (payload: MessageEditedPayload) => {
+        if (!payload?._id) return;
+        handler(payload);
+    };
+    s.on('message:edited', wrapped);
+    return () => s.off('message:edited', wrapped);
+};
+
+export type MessageDeletedPayload = {
+    _id: string;
+    content?: string;
+    isDeleted?: boolean;
+    senderId?: string;
+    receiverId?: string;
+};
+
+export const subscribeToMessageDeleted = (
+    handler: (payload: MessageDeletedPayload) => void,
+): (() => void) => {
+    if (!socket) return () => {};
+    const s = socket;
+    const wrapped = (payload: MessageDeletedPayload) => {
+        if (!payload?._id) return;
+        handler(payload);
+    };
+    s.on('message:deleted', wrapped);
+    return () => s.off('message:deleted', wrapped);
+};

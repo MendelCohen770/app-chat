@@ -348,16 +348,17 @@
 
 ## P2.3 — Edit & Delete Messages
 
-- [ ] **Schema**
-  - [ ] `editedAt`, `isDeleted`, `originalContent`
-- [ ] **Server**
-  - [ ] `PATCH /message/:id` — בדיקת בעלות + חלון זמן (15 דקות)
-  - [ ] `DELETE /message/:id` — soft delete
-  - [ ] socket events: `message:edited`, `message:deleted`
-- [ ] **Client**
-  - [ ] תפריט hover: ערוך / מחק
-  - [ ] תצוגת "(נערך)" ליד הודעה
-  - [ ] הודעה שנמחקה: "ההודעה נמחקה"
+- [x] **Schema**
+  - [x] `editedAt`, `isDeleted`, `originalContent`
+- [x] **Server**
+  - [x] `PATCH /message/:id` — בדיקת בעלות + חלון זמן (15 דקות)
+  - [x] `DELETE /message/:id` — soft delete
+  - [x] socket events: `message:edited`, `message:deleted`
+- [x] **Client**
+  - [x] תפריט hover: ערוך / מחק
+  - [x] תצוגת "(נערך)" ליד הודעה
+  - [x] הודעה שנמחקה: "ההודעה נמחקה"
+  - [x] commit: `git commit -m "feat(chat): add edit/delete message flow with ownership checks and realtime updates"`
 
 ## P2.4 — Reactions
 

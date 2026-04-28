@@ -86,7 +86,7 @@ describe('MessageInput', () => {
     await waitFor(() => {
       expect(sendMessageSpy).toHaveBeenCalledWith('hello world');
     });
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(emitTypingStopMock).toHaveBeenCalledWith('other-1');
   });
 });

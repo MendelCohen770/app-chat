@@ -228,7 +228,6 @@ const LoginPage: React.FC = () => {
           >
             <Input
               id="username"
-              name="username"
               label={t('auth.fields.username')}
               placeholder={t('auth.fields.usernamePlaceholder')}
               autoComplete="username"
@@ -239,7 +238,6 @@ const LoginPage: React.FC = () => {
 
             <Input
               id="password"
-              name="password"
               type={showPassword ? 'text' : 'password'}
               label={t('auth.fields.password')}
               placeholder={t('auth.fields.passwordPlaceholder')}
@@ -309,7 +307,6 @@ const LoginPage: React.FC = () => {
           >
             <Input
               id="otp-email"
-              name="otp-email"
               type="email"
               label={t('auth.fields.email')}
               placeholder={t('auth.fields.emailPlaceholder')}
@@ -327,7 +324,6 @@ const LoginPage: React.FC = () => {
             {otpStep === 'verify' && (
               <Input
                 id="otp-code"
-                name="otp-code"
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"

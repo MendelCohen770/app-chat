@@ -12,6 +12,7 @@
     "empty": "אין נתונים להצגה",
     "search": "חיפוש",
     "send": "שליחה",
+    "save": "שמירה",
     "cancel": "ביטול",
     "language": "שפה",
     "languageNames": {
@@ -142,6 +143,12 @@
       "delivered": "נמסר",
       "read": "נקרא"
     },
+    "actions": {
+      "edit": "עריכה",
+      "delete": "מחיקה"
+    },
+    "editedSuffix": "(נערך)",
+    "deletedMessage": "ההודעה נמחקה",
     "voice": {
       "recording": "מקליט…",
       "stop": "עצירת הקלטה",

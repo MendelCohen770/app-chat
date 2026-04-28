@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { VscEyeClosed, VscEye } from 'react-icons/vsc';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -90,7 +90,6 @@ const Signup = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <Input
             id="username"
-            name="username"
             label={t('auth.fields.username')}
             placeholder={t('auth.fields.usernamePlaceholder')}
             autoComplete="username"
@@ -101,7 +100,6 @@ const Signup = () => {
           />
           <Input
             id="email"
-            name="email"
             type="email"
             label={t('auth.fields.email')}
             placeholder={t('auth.fields.emailPlaceholder')}
@@ -112,7 +110,6 @@ const Signup = () => {
           />
           <Input
             id="phone"
-            name="phone"
             type="tel"
             label={t('auth.fields.phone')}
             placeholder={t('auth.fields.phonePlaceholder')}
@@ -123,7 +120,6 @@ const Signup = () => {
           />
           <Input
             id="password"
-            name="password"
             type={showPassword ? 'text' : 'password'}
             label={t('auth.fields.password')}
             placeholder={t('auth.fields.passwordPlaceholder')}
@@ -145,7 +141,6 @@ const Signup = () => {
           />
           <Input
             id="confirmPassword"
-            name="confirmPassword"
             type={showConfirmPassword ? 'text' : 'password'}
             label={t('auth.fields.confirmPassword')}
             placeholder={t('auth.fields.confirmPasswordPlaceholder')}

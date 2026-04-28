@@ -12,6 +12,7 @@
     "empty": "Nothing to show",
     "search": "Search",
     "send": "Send",
+    "save": "Save",
     "cancel": "Cancel",
     "language": "Language",
     "languageNames": {
@@ -142,6 +143,12 @@
       "delivered": "Delivered",
       "read": "Read"
     },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "editedSuffix": "(edited)",
+    "deletedMessage": "This message was deleted",
     "voice": {
       "recording": "Recording…",
       "stop": "Stop recording",

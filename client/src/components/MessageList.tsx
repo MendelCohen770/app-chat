@@ -6,6 +6,8 @@ import { useUser } from '../context/useUser';
 import {
   onNewMessage,
   subscribeToMessageStatus,
+  subscribeToMessageEdited,
+  subscribeToMessageDeleted,
   emitMessagesRead,
   type MessageStatusPayload,
 } from '../service/socket';
@@ -23,6 +25,8 @@ type MessageVm = {
   createdAtIso: string;
   deliveredAtIso: string | null;
   readAtIso: string | null;
+  editedAtIso: string | null;
+  isDeleted: boolean;
 };
 
 type MessagesPage = {
@@ -54,6 +58,8 @@ const mapRow = (m: any, myId: string): MessageVm => {
     createdAtIso: iso,
     deliveredAtIso: toIsoOrNull(m.deliveredAt),
     readAtIso: toIsoOrNull(m.readAt),
+    editedAtIso: toIsoOrNull(m.editedAt),
+    isDeleted: Boolean(m.isDeleted),
   };
 };
 
@@ -113,6 +119,7 @@ const MessageList = () => {
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInitialLoadRef = useRef<boolean>(true);
@@ -216,7 +223,19 @@ const MessageList = () => {
   useEffect(() => {
     if (!myId || !otherId) return;
     const handler = (payload: any) => {
-      const { senderId, receiverId, content, createdAt, _id, type, media, deliveredAt, readAt } =
+      const {
+        senderId,
+        receiverId,
+        content,
+        createdAt,
+        _id,
+        type,
+        media,
+        deliveredAt,
+        readAt,
+        editedAt,
+        isDeleted,
+      } =
         payload || {};
       const relevant =
         (senderId === myId && receiverId === otherId) ||
@@ -239,6 +258,8 @@ const MessageList = () => {
             createdAtIso: iso,
             deliveredAtIso: toIsoOrNull(deliveredAt),
             readAtIso: toIsoOrNull(readAt),
+            editedAtIso: toIsoOrNull(editedAt),
+            isDeleted: Boolean(isDeleted),
           },
         ];
       });
@@ -258,6 +279,94 @@ const MessageList = () => {
     };
     onNewMessage(handler);
   }, [myId, otherId]);
+
+  useEffect(() => {
+    if (!myId || !otherId) return;
+    const unsubEdited = subscribeToMessageEdited((payload) => {
+      setItems((prev) =>
+        prev.map((m) =>
+          m.id === payload._id
+            ? {
+                ...m,
+                text: payload.content || m.text,
+                editedAtIso: toIsoOrNull(payload.editedAt) || new Date().toISOString(),
+              }
+            : m,
+        ),
+      );
+    });
+    const unsubDeleted = subscribeToMessageDeleted((payload) => {
+      setItems((prev) =>
+        prev.map((m) =>
+          m.id === payload._id
+            ? {
+                ...m,
+                text: payload.content || 'ההודעה נמחקה',
+                isDeleted: true,
+                editedAtIso: null,
+              }
+            : m,
+        ),
+      );
+    });
+    return () => {
+      unsubEdited();
+      unsubDeleted();
+    };
+  }, [myId, otherId]);
+
+  const editMessage = useCallback(
+    async (messageId: string, content: string) => {
+      if (!messageId) return false;
+      setUpdatingMessageId(messageId);
+      try {
+        const res = await apiClient.patch(`/message/${messageId}`, { content });
+        const updated = (res?.data as any)?.data;
+        setItems((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  text: updated?.content || content,
+                  editedAtIso: toIsoOrNull(updated?.editedAt) || new Date().toISOString(),
+                }
+              : m,
+          ),
+        );
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setUpdatingMessageId((curr) => (curr === messageId ? null : curr));
+      }
+    },
+    [],
+  );
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!messageId) return false;
+    setUpdatingMessageId(messageId);
+    try {
+      await apiClient.delete(`/message/${messageId}`);
+      setItems((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                text: 'ההודעה נמחקה',
+                isDeleted: true,
+                editedAtIso: null,
+              }
+            : m,
+        ),
+      );
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setUpdatingMessageId((curr) => (curr === messageId ? null : curr));
+    }
+  }, []);
 
   // Subscribe to message-status updates (✓✓ delivered / read) for this chat.
   useEffect(() => {
@@ -397,6 +506,9 @@ const MessageList = () => {
           <MessageItem
             message={message}
             highlight={searchQuery}
+            isUpdating={updatingMessageId === message.id}
+            onEdit={editMessage}
+            onDelete={deleteMessage}
             status={
               message.sender === 'me'
                 ? message.readAtIso

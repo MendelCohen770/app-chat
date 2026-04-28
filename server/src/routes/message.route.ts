@@ -1,9 +1,9 @@
 import express from 'express'
-import { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead } from '../controllers/message.controller';
+import { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead, editMessage, deleteMessage } from '../controllers/message.controller';
 import { authMiddleware } from '../middlewares/middel';
 import { chatMediaUpload, voiceUpload } from '../middlewares/upload';
 import { validateBody } from '../middlewares/validate.middleware';
-import { markReadBodySchema, sendMediaBodySchema, sendMessageBodySchema, sendVoiceBodySchema } from '../schemas';
+import { editMessageBodySchema, markReadBodySchema, sendMediaBodySchema, sendMessageBodySchema, sendVoiceBodySchema } from '../schemas';
 
 
 const messageRoute = express.Router();
@@ -78,5 +78,45 @@ messageRoute.post('/sendMedia', authMiddleware, chatMediaUpload, validateBody(se
  *         description: Messages marked as read successfully
  */
 messageRoute.patch('/markRead', authMiddleware, validateBody(markReadBodySchema), markRead);
+/**
+ * @openapi
+ * /message/{id}:
+ *   patch:
+ *     tags:
+ *       - Message
+ *     summary: Edit a message (owner only, within 15 minutes)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Message edited successfully
+ */
+messageRoute.patch('/:id', authMiddleware, validateBody(editMessageBodySchema), editMessage);
+/**
+ * @openapi
+ * /message/{id}:
+ *   delete:
+ *     tags:
+ *       - Message
+ *     summary: Soft delete a message (owner only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Message deleted successfully
+ */
+messageRoute.delete('/:id', authMiddleware, deleteMessage);
 
 export default messageRoute;

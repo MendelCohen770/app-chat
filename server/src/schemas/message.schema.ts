@@ -22,3 +22,7 @@ export const sendMediaBodySchema = z.object({
 export const markReadBodySchema = z.object({
     peerId: z.string().regex(objectIdRegex, 'Invalid peer id'),
 });
+
+export const editMessageBodySchema = z.object({
+    content: z.string().trim().min(1, 'Content is required').max(4000, 'Content is too long'),
+});

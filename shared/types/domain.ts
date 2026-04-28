@@ -32,9 +32,12 @@ export interface Message {
   receiver: string;
   type: MessageType;
   content?: string;
+  originalContent?: string | null;
   media?: string;
   deliveredAt?: string | Date | null;
   readAt?: string | Date | null;
+  editedAt?: string | Date | null;
+  isDeleted?: boolean;
   deletedAt?: string | Date | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;

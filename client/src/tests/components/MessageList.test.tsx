@@ -77,7 +77,7 @@ describe('MessageList', () => {
     render(<MessageList />);
 
     expect(await screen.findByText('hello there')).toBeInTheDocument();
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(onNewMessageMock).toHaveBeenCalledTimes(1);
       expect(subscribeToMessageStatusMock).toHaveBeenCalledTimes(1);

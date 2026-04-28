@@ -15,6 +15,7 @@ const safeUnlink = (p?: string) => {
 };
 
 const objectIdRegex = /^[a-f\d]{24}$/i;
+const MESSAGE_EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 const emitNewMessage = (message: any) => {
     try {
@@ -28,10 +29,48 @@ const emitNewMessage = (message: any) => {
                 receiverId: String(message.receiver),
                 type: message.type,
                 content: message.content,
+                originalContent: message.originalContent || null,
                 media: message.media,
                 createdAt: message.createdAt,
                 deliveredAt: message.deliveredAt || null,
                 readAt: message.readAt || null,
+                editedAt: message.editedAt || null,
+                isDeleted: Boolean(message.isDeleted),
+            });
+    } catch (_) {
+        // socket not ready / not initialised – safe to skip
+    }
+};
+
+const emitMessageEdited = (message: any) => {
+    try {
+        const io = getIO();
+        io.to(String(message.sender))
+            .to(String(message.receiver))
+            .emit('message:edited', {
+                _id: String(message._id),
+                content: message.content || '',
+                editedAt: message.editedAt || null,
+                originalContent: message.originalContent || null,
+                senderId: String(message.sender),
+                receiverId: String(message.receiver),
+            });
+    } catch (_) {
+        // socket not ready / not initialised – safe to skip
+    }
+};
+
+const emitMessageDeleted = (message: any) => {
+    try {
+        const io = getIO();
+        io.to(String(message.sender))
+            .to(String(message.receiver))
+            .emit('message:deleted', {
+                _id: String(message._id),
+                content: message.content || '',
+                isDeleted: Boolean(message.isDeleted),
+                senderId: String(message.sender),
+                receiverId: String(message.receiver),
             });
     } catch (_) {
         // socket not ready / not initialised – safe to skip
@@ -349,4 +388,83 @@ const markRead = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
-export { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead };
+const editMessage = asyncHandler(async (req: Request, res: Response) => {
+    const authUserId = req.user?.id;
+    if (!authUserId) {
+        throw new AppError(401, 'Authentication failed', 'No authenticated user');
+    }
+
+    const { id } = req.params as { id?: string };
+    if (!id || !objectIdRegex.test(String(id))) {
+        throw new AppError(400, 'Invalid request', '`id` must be a valid message id');
+    }
+
+    const { content } = req.body as { content?: string };
+    const nextContent = (content || '').trim();
+    if (!nextContent) {
+        throw new AppError(400, 'Invalid request', '`content` is required');
+    }
+
+    const message = await Message.findById(id);
+    if (!message) {
+        throw new AppError(404, 'Message not found', 'Message does not exist');
+    }
+    if (String(message.sender) !== String(authUserId)) {
+        throw new AppError(403, 'Forbidden', 'Only message owner can edit');
+    }
+    if (message.isDeleted) {
+        throw new AppError(400, 'Invalid request', 'Cannot edit a deleted message');
+    }
+    if (!message.createdAt || Date.now() - message.createdAt.getTime() > MESSAGE_EDIT_WINDOW_MS) {
+        throw new AppError(403, 'Edit window expired', 'Messages can only be edited within 15 minutes');
+    }
+    if ((message.content || '').trim() === nextContent) {
+        return res.status(200).json(
+            genericResponse(true, 'Message edited successfully', null, null, message),
+        );
+    }
+
+    message.originalContent = message.originalContent || message.content || '';
+    message.content = nextContent;
+    message.editedAt = new Date();
+    await message.save();
+
+    emitMessageEdited(message);
+    return res.status(200).json(genericResponse(true, 'Message edited successfully', null, null, message));
+});
+
+const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
+    const authUserId = req.user?.id;
+    if (!authUserId) {
+        throw new AppError(401, 'Authentication failed', 'No authenticated user');
+    }
+
+    const { id } = req.params as { id?: string };
+    if (!id || !objectIdRegex.test(String(id))) {
+        throw new AppError(400, 'Invalid request', '`id` must be a valid message id');
+    }
+
+    const message = await Message.findById(id);
+    if (!message) {
+        throw new AppError(404, 'Message not found', 'Message does not exist');
+    }
+    if (String(message.sender) !== String(authUserId)) {
+        throw new AppError(403, 'Forbidden', 'Only message owner can delete');
+    }
+    if (message.isDeleted) {
+        return res.status(200).json(
+            genericResponse(true, 'Message deleted successfully', null, null, message),
+        );
+    }
+
+    message.originalContent = message.originalContent || message.content || '';
+    message.content = 'ההודעה נמחקה';
+    message.isDeleted = true;
+    message.editedAt = null;
+    await message.save();
+
+    emitMessageDeleted(message);
+    return res.status(200).json(genericResponse(true, 'Message deleted successfully', null, null, message));
+});
+
+export { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead, editMessage, deleteMessage };

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiFile, FiDownload, FiEdit2, FiTrash2, FiCheck, FiX } from 'react-icons/fi';
+import { FiFile, FiDownload, FiEdit2, FiTrash2, FiCheck, FiX, FiSmile } from 'react-icons/fi';
 import VoiceMessagePlayer from './VoiceMessagePlayer';
 import { API_BASE_URL } from '../config/env';
 
@@ -233,15 +233,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={['w-full flex', isMine ? 'justify-end' : 'justify-start'].join(' ')}>
+    <div className={['w-full flex flex-col gap-1', isMine ? 'items-end' : 'items-start'].join(' ')}>
       <article
         aria-label={ariaLabel.trim()}
         className={[
-          'group relative max-w-[80%] sm:max-w-[65%] rounded-2xl text-sm leading-snug break-words',
+          'group relative max-w-[80%] sm:max-w-[65%] rounded-2xl text-sm leading-snug break-words shadow-sm',
           isMediaBubble ? 'p-1.5' : 'px-3 py-2',
           isMine
             ? 'bg-orange-500 text-white rounded-br-sm'
-            : 'bg-slate-700 text-slate-50 rounded-bl-sm',
+            : 'bg-slate-700 text-slate-50 rounded-bl-sm border border-slate-600/70',
         ].join(' ')}
       >
         {isAudio && (
@@ -381,50 +381,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
           {isMine && status && <ReadReceipt status={status} />}
         </span>
 
-        {!isDeleted && typeof onToggleReaction === 'function' && (
-          <div className="absolute -bottom-3 end-2 flex items-center justify-end">
-            <button
-              type="button"
-              title={t('chat.reactions.add')}
-              aria-label={t('chat.reactions.add')}
-              className="h-6 min-w-6 px-1 rounded-full border border-slate-500/60 bg-slate-800/95 text-xs hover:bg-slate-700"
-              onClick={() => setIsReactionPickerOpen((prev) => !prev)}
-              disabled={Boolean(isUpdating)}
-            >
-              +
-            </button>
-          </div>
-        )}
-
-        {isReactionPickerOpen && !isDeleted && (
-          <div className="absolute -bottom-11 end-2 z-20 flex items-center gap-1 rounded-full border border-slate-600 bg-slate-900 px-2 py-1 shadow-lg">
-            {REACTION_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className="rounded-full px-1 py-0.5 text-sm hover:bg-slate-700"
-                onClick={() => void toggleReactionByEmoji(emoji)}
-                aria-label={t('chat.reactions.pick', { emoji })}
-                title={t('chat.reactions.pick', { emoji })}
-                disabled={Boolean(isUpdating)}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        )}
       </article>
-      {groupedReactions.length > 0 && (
-        <div className={['mt-1 flex flex-wrap gap-1', isMine ? 'justify-end pe-2' : 'justify-start ps-2'].join(' ')}>
+      {(!isDeleted && typeof onToggleReaction === 'function') || groupedReactions.length > 0 ? (
+        <div className={['relative flex flex-wrap items-center gap-1.5', isMine ? 'justify-end' : 'justify-start'].join(' ')}>
           {groupedReactions.map((group) => (
             <button
               type="button"
               key={group.emoji}
               className={[
-                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs',
+                'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors',
                 group.mine
-                  ? 'border-orange-300/70 bg-orange-400/20 text-orange-100'
-                  : 'border-slate-500 bg-slate-700 text-slate-100',
+                  ? 'border-orange-300/80 bg-orange-400/20 text-orange-100 hover:bg-orange-400/30'
+                  : 'border-slate-500/90 bg-slate-700/90 text-slate-100 hover:bg-slate-600/90',
               ].join(' ')}
               onClick={() => void toggleReactionByEmoji(group.emoji)}
               disabled={Boolean(isUpdating) || typeof onToggleReaction !== 'function'}
@@ -434,8 +402,45 @@ const MessageItem: React.FC<MessageItemProps> = ({
               <span>{group.count}</span>
             </button>
           ))}
+          {!isDeleted && typeof onToggleReaction === 'function' && (
+            <button
+              type="button"
+              title={t('chat.reactions.add')}
+              aria-label={t('chat.reactions.add')}
+              className={[
+                'inline-flex h-7 w-7 items-center justify-center rounded-full border text-slate-100 transition-colors',
+                'border-slate-500/90 bg-slate-700/90 hover:bg-slate-600/90',
+              ].join(' ')}
+              onClick={() => setIsReactionPickerOpen((prev) => !prev)}
+              disabled={Boolean(isUpdating)}
+            >
+              <FiSmile size={14} />
+            </button>
+          )}
+          {isReactionPickerOpen && !isDeleted && (
+            <div
+              className={[
+                'absolute z-20 flex items-center gap-1 rounded-2xl border border-slate-600/90 bg-slate-900/95 px-2 py-1.5 shadow-xl',
+                isMine ? 'end-0 top-9' : 'start-0 top-9',
+              ].join(' ')}
+            >
+              {REACTION_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="rounded-full px-1.5 py-1 text-base hover:bg-slate-700 transition-colors"
+                  onClick={() => void toggleReactionByEmoji(emoji)}
+                  aria-label={t('chat.reactions.pick', { emoji })}
+                  title={t('chat.reactions.pick', { emoji })}
+                  disabled={Boolean(isUpdating)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

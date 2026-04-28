@@ -147,6 +147,11 @@
       "edit": "עריכה",
       "delete": "מחיקה"
     },
+    "reactions": {
+      "add": "הוספת תגובה",
+      "pick": "תגובה עם {{emoji}}",
+      "toggle": "החלפת תגובה"
+    },
     "editedSuffix": "(נערך)",
     "deletedMessage": "ההודעה נמחקה",
     "voice": {

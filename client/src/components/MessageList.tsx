@@ -8,6 +8,7 @@ import {
   subscribeToMessageStatus,
   subscribeToMessageEdited,
   subscribeToMessageDeleted,
+  subscribeToMessageReacted,
   emitMessagesRead,
   type MessageStatusPayload,
 } from '../service/socket';
@@ -27,6 +28,7 @@ type MessageVm = {
   readAtIso: string | null;
   editedAtIso: string | null;
   isDeleted: boolean;
+  reactions: Array<{ userId: string; emoji: string }>;
 };
 
 type MessagesPage = {
@@ -60,6 +62,12 @@ const mapRow = (m: any, myId: string): MessageVm => {
     readAtIso: toIsoOrNull(m.readAt),
     editedAtIso: toIsoOrNull(m.editedAt),
     isDeleted: Boolean(m.isDeleted),
+    reactions: Array.isArray(m.reactions)
+      ? m.reactions.map((r: any) => ({
+          userId: String(r.userId),
+          emoji: String(r.emoji),
+        }))
+      : [],
   };
 };
 
@@ -235,6 +243,7 @@ const MessageList = () => {
         readAt,
         editedAt,
         isDeleted,
+        reactions,
       } =
         payload || {};
       const relevant =
@@ -260,6 +269,12 @@ const MessageList = () => {
             readAtIso: toIsoOrNull(readAt),
             editedAtIso: toIsoOrNull(editedAt),
             isDeleted: Boolean(isDeleted),
+            reactions: Array.isArray(reactions)
+              ? reactions.map((r: any) => ({
+                  userId: String(r.userId),
+                  emoji: String(r.emoji),
+                }))
+              : [],
           },
         ];
       });
@@ -309,9 +324,25 @@ const MessageList = () => {
         ),
       );
     });
+    const unsubReacted = subscribeToMessageReacted((payload) => {
+      setItems((prev) =>
+        prev.map((m) =>
+          m.id === payload._id
+            ? {
+                ...m,
+                reactions: payload.reactions.map((r) => ({
+                  userId: String(r.userId),
+                  emoji: String(r.emoji),
+                })),
+              }
+            : m,
+        ),
+      );
+    });
     return () => {
       unsubEdited();
       unsubDeleted();
+      unsubReacted();
     };
   }, [myId, otherId]);
 
@@ -367,6 +398,45 @@ const MessageList = () => {
       setUpdatingMessageId((curr) => (curr === messageId ? null : curr));
     }
   }, []);
+
+  const toggleReaction = useCallback(
+    async (messageId: string, emoji: string, shouldAdd: boolean) => {
+      if (!messageId) return false;
+      if (!emoji) return false;
+      setUpdatingMessageId(messageId);
+      try {
+        const response = shouldAdd
+          ? await apiClient.post(`/message/${messageId}/react`, { emoji })
+          : await apiClient.request({
+              method: 'delete',
+              url: `/message/${messageId}/react`,
+              data: { emoji },
+            });
+        const updated = (response?.data as any)?.data;
+        if (Array.isArray(updated?.reactions)) {
+          setItems((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? {
+                    ...m,
+                    reactions: updated.reactions.map((r: any) => ({
+                      userId: String(r.userId),
+                      emoji: String(r.emoji),
+                    })),
+                  }
+                : m,
+            ),
+          );
+        }
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setUpdatingMessageId((curr) => (curr === messageId ? null : curr));
+      }
+    },
+    [],
+  );
 
   // Subscribe to message-status updates (✓✓ delivered / read) for this chat.
   useEffect(() => {
@@ -509,6 +579,8 @@ const MessageList = () => {
             isUpdating={updatingMessageId === message.id}
             onEdit={editMessage}
             onDelete={deleteMessage}
+            onToggleReaction={toggleReaction}
+            myUserId={myId}
             status={
               message.sender === 'me'
                 ? message.readAtIso

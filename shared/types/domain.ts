@@ -30,6 +30,10 @@ export interface Message {
   conversationId: string;
   sender: string;
   receiver: string;
+  reactions?: Array<{
+    userId: string;
+    emoji: string;
+  }>;
   type: MessageType;
   content?: string;
   originalContent?: string | null;

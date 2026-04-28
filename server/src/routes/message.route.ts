@@ -1,9 +1,9 @@
 import express from 'express'
-import { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead, editMessage, deleteMessage } from '../controllers/message.controller';
+import { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead, editMessage, deleteMessage, reactMessage, unreactMessage } from '../controllers/message.controller';
 import { authMiddleware } from '../middlewares/middel';
 import { chatMediaUpload, voiceUpload } from '../middlewares/upload';
 import { validateBody } from '../middlewares/validate.middleware';
-import { editMessageBodySchema, markReadBodySchema, sendMediaBodySchema, sendMessageBodySchema, sendVoiceBodySchema } from '../schemas';
+import { editMessageBodySchema, markReadBodySchema, reactMessageBodySchema, sendMediaBodySchema, sendMessageBodySchema, sendVoiceBodySchema } from '../schemas';
 
 
 const messageRoute = express.Router();
@@ -118,5 +118,45 @@ messageRoute.patch('/:id', authMiddleware, validateBody(editMessageBodySchema), 
  *         description: Message deleted successfully
  */
 messageRoute.delete('/:id', authMiddleware, deleteMessage);
+/**
+ * @openapi
+ * /message/{id}/react:
+ *   post:
+ *     tags:
+ *       - Message
+ *     summary: Add reaction to a message
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Message reacted successfully
+ */
+messageRoute.post('/:id/react', authMiddleware, validateBody(reactMessageBodySchema), reactMessage);
+/**
+ * @openapi
+ * /message/{id}/react:
+ *   delete:
+ *     tags:
+ *       - Message
+ *     summary: Remove reaction from a message
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Message reaction removed successfully
+ */
+messageRoute.delete('/:id/react', authMiddleware, validateBody(reactMessageBodySchema), unreactMessage);
 
 export default messageRoute;

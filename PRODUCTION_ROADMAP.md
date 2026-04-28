@@ -362,14 +362,15 @@
 
 ## P2.4 — Reactions
 
-- [ ] **Schema**
-  - [ ] `reactions: { userId, emoji }[]`
-- [ ] **Server**
-  - [ ] `POST /message/:id/react` + `DELETE /message/:id/react`
-  - [ ] socket event `message:reacted`
-- [ ] **Client**
-  - [ ] כפתור הוספת תגובה (emoji picker מצומצם)
-  - [ ] תצוגת תגובות מקובצות עם count
+- [x] **Schema**
+  - [x] `reactions: { userId, emoji }[]`
+- [x] **Server**
+  - [x] `POST /message/:id/react` + `DELETE /message/:id/react`
+  - [x] socket event `message:reacted`
+- [x] **Client**
+  - [x] כפתור הוספת תגובה (emoji picker מצומצם)
+  - [x] תצוגת תגובות מקובצות עם count
+  - [x] commit: `git commit -m "feat(chat): add message reactions API and realtime grouped emoji UI"`
 
 ## P2.5 — Reply / Quote
 

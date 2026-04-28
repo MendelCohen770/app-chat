@@ -15,6 +15,7 @@ type Message = {
   media?: string;
   editedAtIso?: string | null;
   isDeleted?: boolean;
+  reactions?: Array<{ userId: string; emoji: string }>;
 };
 
 export type ReadReceiptStatus = 'sent' | 'delivered' | 'read';
@@ -26,7 +27,11 @@ interface MessageItemProps {
   isUpdating?: boolean;
   onEdit?: (messageId: string, content: string) => Promise<boolean>;
   onDelete?: (messageId: string) => Promise<boolean>;
+  onToggleReaction?: (messageId: string, emoji: string, shouldAdd: boolean) => Promise<boolean>;
+  myUserId?: string;
 }
+
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
 
 /**
  * WhatsApp-style read receipts: single check for "sent", double check for
@@ -138,6 +143,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
   isUpdating,
   onEdit,
   onDelete,
+  onToggleReaction,
+  myUserId,
 }) => {
   const { t } = useTranslation();
   const isMine = message.sender === 'me';
@@ -154,6 +161,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const fileName = useMemo(() => extractFileName(message), [message]);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(message.text);
+  const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
 
   React.useEffect(() => {
     if (!isEditing) setDraft(message.text);
@@ -199,6 +207,30 @@ const MessageItem: React.FC<MessageItemProps> = ({
       ? `${t('chat.messageFromMe')} ${message.text} ${message.timestamp}`
       : `${t('chat.messageFrom', { name: '' })} ${message.text} ${message.timestamp}`;
   })();
+
+  const groupedReactions = useMemo(() => {
+    const groups = new Map<string, { emoji: string; count: number; mine: boolean }>();
+    for (const reaction of message.reactions || []) {
+      const emoji = String(reaction.emoji || '').trim();
+      if (!emoji) continue;
+      const prev = groups.get(emoji);
+      groups.set(emoji, {
+        emoji,
+        count: (prev?.count || 0) + 1,
+        mine: Boolean(prev?.mine) || String(reaction.userId) === String(myUserId || ''),
+      });
+    }
+    return Array.from(groups.values());
+  }, [message.reactions, myUserId]);
+
+  const toggleReactionByEmoji = async (emoji: string) => {
+    if (!onToggleReaction) return;
+    const mine = (message.reactions || []).some(
+      (reaction) => String(reaction.userId) === String(myUserId || '') && reaction.emoji === emoji,
+    );
+    await onToggleReaction(message.id, emoji, !mine);
+    setIsReactionPickerOpen(false);
+  };
 
   return (
     <div className={['w-full flex', isMine ? 'justify-end' : 'justify-start'].join(' ')}>
@@ -348,7 +380,62 @@ const MessageItem: React.FC<MessageItemProps> = ({
           <span>{message.timestamp}</span>
           {isMine && status && <ReadReceipt status={status} />}
         </span>
+
+        {!isDeleted && typeof onToggleReaction === 'function' && (
+          <div className="absolute -bottom-3 end-2 flex items-center justify-end">
+            <button
+              type="button"
+              title={t('chat.reactions.add')}
+              aria-label={t('chat.reactions.add')}
+              className="h-6 min-w-6 px-1 rounded-full border border-slate-500/60 bg-slate-800/95 text-xs hover:bg-slate-700"
+              onClick={() => setIsReactionPickerOpen((prev) => !prev)}
+              disabled={Boolean(isUpdating)}
+            >
+              +
+            </button>
+          </div>
+        )}
+
+        {isReactionPickerOpen && !isDeleted && (
+          <div className="absolute -bottom-11 end-2 z-20 flex items-center gap-1 rounded-full border border-slate-600 bg-slate-900 px-2 py-1 shadow-lg">
+            {REACTION_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className="rounded-full px-1 py-0.5 text-sm hover:bg-slate-700"
+                onClick={() => void toggleReactionByEmoji(emoji)}
+                aria-label={t('chat.reactions.pick', { emoji })}
+                title={t('chat.reactions.pick', { emoji })}
+                disabled={Boolean(isUpdating)}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </article>
+      {groupedReactions.length > 0 && (
+        <div className={['mt-1 flex flex-wrap gap-1', isMine ? 'justify-end pe-2' : 'justify-start ps-2'].join(' ')}>
+          {groupedReactions.map((group) => (
+            <button
+              type="button"
+              key={group.emoji}
+              className={[
+                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs',
+                group.mine
+                  ? 'border-orange-300/70 bg-orange-400/20 text-orange-100'
+                  : 'border-slate-500 bg-slate-700 text-slate-100',
+              ].join(' ')}
+              onClick={() => void toggleReactionByEmoji(group.emoji)}
+              disabled={Boolean(isUpdating) || typeof onToggleReaction !== 'function'}
+              title={t('chat.reactions.toggle')}
+            >
+              <span>{group.emoji}</span>
+              <span>{group.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

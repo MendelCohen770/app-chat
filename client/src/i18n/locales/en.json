@@ -147,6 +147,11 @@
       "edit": "Edit",
       "delete": "Delete"
     },
+    "reactions": {
+      "add": "Add reaction",
+      "pick": "React with {{emoji}}",
+      "toggle": "Toggle reaction"
+    },
     "editedSuffix": "(edited)",
     "deletedMessage": "This message was deleted",
     "voice": {

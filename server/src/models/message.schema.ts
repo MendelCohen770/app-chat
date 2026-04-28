@@ -28,6 +28,15 @@ const MessageSchema = new Schema<Imessage>({
     editedAt: { type: Date, default: null },
     isDeleted: { type: Boolean, default: false },
     deletedAt: {type: Date, default: null},
+    reactions: {
+        type: [
+            {
+                userId: { type: Schema.Types.ObjectId, required: true },
+                emoji: { type: String, required: true },
+            },
+        ],
+        default: [],
+    },
 },{ timestamps: true});
 
 // Fast lookup of undelivered / unread messages for a given receiver.

@@ -245,3 +245,29 @@ export const subscribeToMessageDeleted = (
     s.on('message:deleted', wrapped);
     return () => s.off('message:deleted', wrapped);
 };
+
+export type MessageReaction = {
+    userId: string;
+    emoji: string;
+};
+
+export type MessageReactedPayload = {
+    _id: string;
+    senderId?: string;
+    receiverId?: string;
+    reactions: MessageReaction[];
+};
+
+export const subscribeToMessageReacted = (
+    handler: (payload: MessageReactedPayload) => void,
+): (() => void) => {
+    if (!socket) return () => {};
+    const s = socket;
+    const wrapped = (payload: MessageReactedPayload) => {
+        if (!payload?._id) return;
+        if (!Array.isArray(payload.reactions)) return;
+        handler(payload);
+    };
+    s.on('message:reacted', wrapped);
+    return () => s.off('message:reacted', wrapped);
+};

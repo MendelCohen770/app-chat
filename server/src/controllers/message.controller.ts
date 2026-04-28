@@ -36,6 +36,12 @@ const emitNewMessage = (message: any) => {
                 readAt: message.readAt || null,
                 editedAt: message.editedAt || null,
                 isDeleted: Boolean(message.isDeleted),
+                reactions: Array.isArray(message.reactions)
+                    ? message.reactions.map((reaction: any) => ({
+                        userId: String(reaction.userId),
+                        emoji: String(reaction.emoji),
+                    }))
+                    : [],
             });
     } catch (_) {
         // socket not ready / not initialised – safe to skip
@@ -71,6 +77,27 @@ const emitMessageDeleted = (message: any) => {
                 isDeleted: Boolean(message.isDeleted),
                 senderId: String(message.sender),
                 receiverId: String(message.receiver),
+            });
+    } catch (_) {
+        // socket not ready / not initialised – safe to skip
+    }
+};
+
+const emitMessageReacted = (message: any) => {
+    try {
+        const io = getIO();
+        io.to(String(message.sender))
+            .to(String(message.receiver))
+            .emit('message:reacted', {
+                _id: String(message._id),
+                senderId: String(message.sender),
+                receiverId: String(message.receiver),
+                reactions: Array.isArray(message.reactions)
+                    ? message.reactions.map((reaction: any) => ({
+                        userId: String(reaction.userId),
+                        emoji: String(reaction.emoji),
+                    }))
+                    : [],
             });
     } catch (_) {
         // socket not ready / not initialised – safe to skip
@@ -467,4 +494,71 @@ const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
     return res.status(200).json(genericResponse(true, 'Message deleted successfully', null, null, message));
 });
 
-export { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead, editMessage, deleteMessage };
+const reactMessage = asyncHandler(async (req: Request, res: Response) => {
+    const authUserId = req.user?.id;
+    if (!authUserId) {
+        throw new AppError(401, 'Authentication failed', 'No authenticated user');
+    }
+    const { id } = req.params as { id?: string };
+    if (!id || !objectIdRegex.test(String(id))) {
+        throw new AppError(400, 'Invalid request', '`id` must be a valid message id');
+    }
+    const emoji = String((req.body as { emoji?: string })?.emoji || '').trim();
+    if (!emoji) {
+        throw new AppError(400, 'Invalid request', '`emoji` is required');
+    }
+
+    const message = await Message.findById(id);
+    if (!message) {
+        throw new AppError(404, 'Message not found', 'Message does not exist');
+    }
+    if (message.isDeleted) {
+        throw new AppError(400, 'Invalid request', 'Cannot react to a deleted message');
+    }
+
+    const currentReactions = Array.isArray(message.reactions) ? message.reactions : [];
+    const hasReaction = currentReactions.some(
+        (r: any) => String(r.userId) === String(authUserId) && String(r.emoji) === emoji,
+    );
+    if (!hasReaction) {
+        currentReactions.push({
+            userId: authUserId as any,
+            emoji,
+        } as any);
+    }
+    message.reactions = currentReactions as any;
+    await message.save();
+    emitMessageReacted(message);
+
+    return res.status(200).json(genericResponse(true, 'Message reacted successfully', null, null, message));
+});
+
+const unreactMessage = asyncHandler(async (req: Request, res: Response) => {
+    const authUserId = req.user?.id;
+    if (!authUserId) {
+        throw new AppError(401, 'Authentication failed', 'No authenticated user');
+    }
+    const { id } = req.params as { id?: string };
+    if (!id || !objectIdRegex.test(String(id))) {
+        throw new AppError(400, 'Invalid request', '`id` must be a valid message id');
+    }
+    const emoji = String((req.body as { emoji?: string })?.emoji || '').trim();
+    if (!emoji) {
+        throw new AppError(400, 'Invalid request', '`emoji` is required');
+    }
+
+    const message = await Message.findById(id);
+    if (!message) {
+        throw new AppError(404, 'Message not found', 'Message does not exist');
+    }
+
+    message.reactions = (Array.isArray(message.reactions) ? message.reactions : []).filter(
+        (r: any) => !(String(r.userId) === String(authUserId) && String(r.emoji) === emoji),
+    ) as any;
+    await message.save();
+    emitMessageReacted(message);
+
+    return res.status(200).json(genericResponse(true, 'Message reaction removed successfully', null, null, message));
+});
+
+export { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead, editMessage, deleteMessage, reactMessage, unreactMessage };

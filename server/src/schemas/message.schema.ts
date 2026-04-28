@@ -26,3 +26,7 @@ export const markReadBodySchema = z.object({
 export const editMessageBodySchema = z.object({
     content: z.string().trim().min(1, 'Content is required').max(4000, 'Content is too long'),
 });
+
+export const reactMessageBodySchema = z.object({
+    emoji: z.string().trim().min(1, 'Emoji is required').max(16, 'Emoji is too long'),
+});

@@ -9,7 +9,7 @@ import {
   emitMessagesRead,
   type MessageStatusPayload,
 } from '../service/socket';
-import { LoadingState, EmptyState, ErrorState } from './ui/States';
+import { MessageListSkeleton, EmptyState, ErrorState } from './ui/States';
 import apiClient from '../service/apiClient';
 
 type MessageKind = 'text' | 'image' | 'video' | 'audio' | 'file';
@@ -69,7 +69,7 @@ const fetchMessagesPage = async (
   });
   if (before) params.set('before', before);
   const res = await apiClient.get(`/message/getMessages?${params.toString()}`);
-  const json = res.data;
+  const json: any = res.data;
   const data = json?.data || {};
   const rawItems: any[] = Array.isArray(data.items) ? data.items : [];
   // Server returns newest-first; reverse so oldest appears first in the UI list.
@@ -295,17 +295,13 @@ const MessageList = () => {
   }, [myId, otherId, status, items]);
 
   if (status === 'loading') {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <LoadingState title={t('chat.loadingMessages')} />
-      </div>
-    );
+    return <MessageListSkeleton />;
   }
 
   if (status === 'error') {
     return (
-      <div className="h-full flex items-center justify-center">
-        <ErrorState title={t('chat.messagesError')} onRetry={loadInitial} />
+      <div className="h-full flex items-center justify-center p-4">
+        <ErrorState title={t('chat.messagesError')} onRetry={loadInitial} className="w-full max-w-md" />
       </div>
     );
   }

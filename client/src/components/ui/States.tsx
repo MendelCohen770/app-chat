@@ -92,11 +92,25 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       aria-live="assertive"
       title={title || t('common.error')}
       description={description}
-      icon={icon}
-      className={className}
+      icon={
+        icon || (
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 text-red-300">
+            !
+          </span>
+        )
+      }
+      className={[
+        'rounded-xl border border-red-500/30 bg-red-500/10 text-red-100',
+        className,
+      ].join(' ')}
     >
       {onRetry && (
-        <Button variant="secondary" size="sm" onClick={onRetry} className="mt-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onRetry}
+          className="mt-2 border-red-300/30 bg-red-400/10 hover:bg-red-400/20"
+        >
           {retryLabel || t('common.retry')}
         </Button>
       )}
@@ -109,4 +123,40 @@ export const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) =
     aria-hidden="true"
     className={['animate-pulse rounded-md bg-slate-700/60', className].join(' ')}
   />
+);
+
+export const UserListSkeleton: React.FC = () => (
+  <div role="status" aria-live="polite" aria-label="Loading contacts" className="p-2 space-y-2">
+    {Array.from({ length: 8 }).map((_, idx) => (
+      <div key={idx} className="flex items-center gap-3 rounded-lg bg-slate-800/50 p-3">
+        <Skeleton className="h-12 w-12 rounded-full bg-slate-700" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+export const MessageListSkeleton: React.FC = () => (
+  <div role="status" aria-live="polite" aria-label="Loading messages" className="p-4 space-y-3">
+    {Array.from({ length: 9 }).map((_, idx) => {
+      const mine = idx % 2 === 0;
+      return (
+        <div key={idx} className={['flex', mine ? 'justify-end' : 'justify-start'].join(' ')}>
+          <div
+            className={[
+              'rounded-2xl border border-slate-700/70 bg-slate-800/60 p-3 space-y-2',
+              mine ? 'w-[70%]' : 'w-[62%]',
+            ].join(' ')}
+          >
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-4/5" />
+            <Skeleton className="h-2.5 w-16 ms-auto" />
+          </div>
+        </div>
+      );
+    })}
+  </div>
 );

@@ -10,7 +10,7 @@ import { useChat } from '../context/useChat';
 import { useUser } from '../context/useUser';
 import { usePresence } from '../context/usePresence';
 import { IUser } from '../models/user';
-import { LoadingState, EmptyState, ErrorState } from '../components/ui/States';
+import { UserListSkeleton, EmptyState, ErrorState } from '../components/ui/States';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
 import { logoutUser, resolveMediaUrl } from '../hooks/UseUser';
 import apiClient from '../service/apiClient';
@@ -29,7 +29,7 @@ type UsersPage = {
 const fetchUsersPage = async (page: number, limit: number): Promise<UsersPage> => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   const res = await apiClient.get(`/user/getAllUsers?${params.toString()}`);
-  const json = res.data;
+  const json: any = res.data;
   if (!json?.isSuccessful || !json?.data) throw new Error(json?.displayMessage || 'Failed');
   const data = json.data;
   return {
@@ -176,8 +176,16 @@ const UserPanel = () => {
   }, [hasMore, isLoadingMore, searchInput, loadMore]);
 
   const renderList = () => {
-    if (isLoading) return <LoadingState title={t('chat.loadingContacts')} />;
-    if (isError) return <ErrorState title={t('chat.contactsError')} onRetry={loadFirstPage} />;
+    if (isLoading) return <UserListSkeleton />;
+    if (isError) {
+      return (
+        <ErrorState
+          title={t('chat.contactsError')}
+          onRetry={loadFirstPage}
+          className="m-3"
+        />
+      );
+    }
     if (!filtered.length) {
       return (
         <EmptyState

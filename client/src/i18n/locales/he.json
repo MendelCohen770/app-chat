@@ -90,6 +90,7 @@
     "messageInputPlaceholder": "הודעה",
     "sendMessage": "שליחת הודעה",
     "typing": "מקליד…",
+    "typingWithName": "{{name}} מקליד/ה...",
     "recordVoice": "הקלטת הודעה קולית",
     "attach": "צירוף קובץ",
     "attachImage": "תמונה",

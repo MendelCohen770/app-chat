@@ -90,6 +90,7 @@
     "messageInputPlaceholder": "Message",
     "sendMessage": "Send message",
     "typing": "typing…",
+    "typingWithName": "{{name}} is typing...",
     "recordVoice": "Record voice message",
     "attach": "Attach",
     "attachImage": "Image",

@@ -15,8 +15,9 @@ const ContactInfo = () => {
 
   const peerIsTyping = isTyping(selectedUser?._id);
   const peerIsOnline = isOnline(selectedUser?._id);
+  const username = selectedUser?.username || t('common.unknown');
   const statusText = peerIsTyping
-    ? t('chat.typing')
+    ? t('chat.typingWithName', { name: username })
     : peerIsOnline
       ? t('common.online')
       : t('common.offline');
@@ -34,7 +35,7 @@ const ContactInfo = () => {
       />
       <div className="flex flex-col min-w-0">
         <span className="text-base font-semibold text-slate-100 truncate">
-          {selectedUser?.username || t('common.unknown')}
+          {username}
         </span>
         <span className={statusClassName} aria-live="polite">
           {statusText}

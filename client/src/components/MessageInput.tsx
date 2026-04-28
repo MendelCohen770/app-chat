@@ -15,9 +15,8 @@ interface sendMessageProps {
   sendMessage: (message: string) => void;
 }
 
-// Clear the "typing…" indicator after a short idle window without further
-// keystrokes. Tuned to feel snappy while still bridging short pauses.
-const TYPING_IDLE_TIMEOUT_MS = 2500;
+// Clear the typing indicator after 1.5s of inactivity (roadmap requirement).
+const TYPING_IDLE_TIMEOUT_MS = 1500;
 
 const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
   const { t } = useTranslation();

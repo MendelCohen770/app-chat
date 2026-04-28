@@ -304,10 +304,11 @@
 
 ## P1.9 — תיעוד
 
-- [ ] **README ראשי מורחב**
-  - [ ] ארכיטקטורה (תרשים)
-  - [ ] איך להריץ עם Docker
-  - [ ] טבלת ENV variables
+- [x] **README ראשי מורחב**
+  - [x] ארכיטקטורה (תרשים)
+  - [x] איך להריץ עם Docker
+  - [x] טבלת ENV variables
+  - [x] commit: `git commit -m "docs(readme): add architecture diagram, docker run guide, and full env variables table"`
 - [ ] **API Documentation**
   - [ ] Swagger / OpenAPI
   - [ ] route `/api/docs`

@@ -23,6 +23,7 @@ type MessageVm = {
   timestamp: string;
   type?: MessageType;
   media?: string;
+  replyToId: string | null;
   createdAtIso: string;
   deliveredAtIso: string | null;
   readAtIso: string | null;
@@ -51,12 +52,13 @@ const toIsoOrNull = (value: unknown): string | null => {
 const mapRow = (m: any, myId: string): MessageVm => {
   const iso = m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString();
   return {
-    id: m._id,
+    id: String(m._id),
     text: m.content || '',
     sender: String(m.sender) === myId ? 'me' : 'other',
     timestamp: formatTime(iso),
     type: m.type as MessageType | undefined,
     media: m.media,
+    replyToId: m.replyTo ? String(m.replyTo) : null,
     createdAtIso: iso,
     deliveredAtIso: toIsoOrNull(m.deliveredAt),
     readAtIso: toIsoOrNull(m.readAt),
@@ -128,11 +130,23 @@ const MessageList = () => {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
+  const [highlightedReplyId, setHighlightedReplyId] = useState<string | null>(null);
+  const [hiddenMessageIds, setHiddenMessageIds] = useState<Set<string>>(new Set());
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInitialLoadRef = useRef<boolean>(true);
   const isMarkingReadRef = useRef<boolean>(false);
   const markReadCooldownUntilRef = useRef<number>(0);
+  const clearReplyHighlightTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clearReplyHighlightTimerRef.current !== null) {
+        window.clearTimeout(clearReplyHighlightTimerRef.current);
+        clearReplyHighlightTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const loadInitial = useCallback(async () => {
     if (!myId || !otherId) {
@@ -158,6 +172,10 @@ const MessageList = () => {
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
+
+  useEffect(() => {
+    setHiddenMessageIds(new Set());
+  }, [myId, otherId]);
 
   const loadOlder = useCallback(async () => {
     if (!myId || !otherId) return;
@@ -194,10 +212,11 @@ const MessageList = () => {
   }, [myId, otherId, hasMore, nextCursor, isLoadingMore]);
 
   const filteredItems = useMemo<MessageVm[]>(() => {
-    if (!searchQuery) return items;
+    const visible = items.filter((m) => !hiddenMessageIds.has(m.id));
+    if (!searchQuery) return visible;
     const needle = searchQuery.toLowerCase();
-    return items.filter((m) => buildHaystack(m).includes(needle));
-  }, [items, searchQuery]);
+    return visible.filter((m) => buildHaystack(m).includes(needle));
+  }, [items, searchQuery, hiddenMessageIds]);
 
   // Auto-scroll to the latest message on first load and when new messages arrive,
   // but NOT when we prepend older messages (handled in loadOlder).
@@ -227,7 +246,7 @@ const MessageList = () => {
     [loadOlder],
   );
 
-  // Real-time messages: append and auto-scroll to bottom if user is already near it.
+  // Real-time messages: append, but only force-scroll for local outgoing messages.
   useEffect(() => {
     if (!myId || !otherId) return;
     const handler = (payload: any) => {
@@ -244,6 +263,7 @@ const MessageList = () => {
         editedAt,
         isDeleted,
         reactions,
+        replyTo,
       } =
         payload || {};
       const relevant =
@@ -251,19 +271,22 @@ const MessageList = () => {
         (senderId === otherId && receiverId === myId);
       if (!relevant) return;
       let appended = false;
+      const nextId = String(_id || '');
       setItems((prev) => {
-        if (prev.some((m) => m.id === _id)) return prev;
+        if (!nextId) return prev;
+        if (prev.some((m) => m.id === nextId)) return prev;
         appended = true;
         const iso = createdAt ? new Date(createdAt).toISOString() : new Date().toISOString();
         return [
           ...prev,
           {
-            id: _id,
+            id: nextId,
             text: content || '',
             sender: senderId === myId ? 'me' : 'other',
             timestamp: formatTime(iso),
             type: type as MessageType | undefined,
             media,
+            replyToId: replyTo ? String(replyTo) : null,
             createdAtIso: iso,
             deliveredAtIso: toIsoOrNull(deliveredAt),
             readAtIso: toIsoOrNull(readAt),
@@ -278,12 +301,12 @@ const MessageList = () => {
           },
         ];
       });
-      // Scroll to bottom on new message only if user is near the bottom.
+      // Only local sends force-scroll to latest; incoming messages don't move
+      // the user's current reading position.
       requestAnimationFrame(() => {
         const el = containerRef.current;
         if (!el) return;
-        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-        if (distanceFromBottom < 120) {
+        if (senderId === myId) {
           el.scrollTop = el.scrollHeight;
         }
       });
@@ -292,15 +315,59 @@ const MessageList = () => {
         emitMessagesRead(otherId);
       }
     };
-    onNewMessage(handler);
+    const unsubscribe = onNewMessage(handler);
+    return unsubscribe;
   }, [myId, otherId]);
+
+  const scrollToMessageById = useCallback((messageId: string) => {
+    if (!messageId) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const node = container.querySelector<HTMLElement>(`[data-message-id="${messageId}"]`);
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedReplyId(messageId);
+    if (clearReplyHighlightTimerRef.current !== null) {
+      window.clearTimeout(clearReplyHighlightTimerRef.current);
+    }
+    clearReplyHighlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedReplyId((current) => (current === messageId ? null : current));
+      clearReplyHighlightTimerRef.current = null;
+    }, 1600);
+  }, []);
+
+  const triggerReply = useCallback(
+    (message: MessageVm) => {
+      chat?.setReplyTarget?.({
+        id: message.id,
+        text: message.text,
+        sender: message.sender,
+        type: message.type,
+        isDeleted: message.isDeleted,
+      });
+      chat?.requestMessageInputFocus?.();
+    },
+    [chat],
+  );
+
+  const hideUnavailableMessage = useCallback((messageId: string) => {
+    if (!messageId) return;
+    setHiddenMessageIds((prev) => {
+      if (prev.has(messageId)) return prev;
+      const next = new Set(prev);
+      next.add(messageId);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!myId || !otherId) return;
     const unsubEdited = subscribeToMessageEdited((payload) => {
+      const targetId = String(payload._id || '');
+      if (!targetId) return;
       setItems((prev) =>
         prev.map((m) =>
-          m.id === payload._id
+          m.id === targetId
             ? {
                 ...m,
                 text: payload.content || m.text,
@@ -311,9 +378,11 @@ const MessageList = () => {
       );
     });
     const unsubDeleted = subscribeToMessageDeleted((payload) => {
+      const targetId = String(payload._id || '');
+      if (!targetId) return;
       setItems((prev) =>
         prev.map((m) =>
-          m.id === payload._id
+          m.id === targetId
             ? {
                 ...m,
                 text: payload.content || 'ההודעה נמחקה',
@@ -325,9 +394,11 @@ const MessageList = () => {
       );
     });
     const unsubReacted = subscribeToMessageReacted((payload) => {
+      const targetId = String(payload._id || '');
+      if (!targetId) return;
       setItems((prev) =>
         prev.map((m) =>
-          m.id === payload._id
+          m.id === targetId
             ? {
                 ...m,
                 reactions: payload.reactions.map((r) => ({
@@ -572,14 +643,48 @@ const MessageList = () => {
         </div>
       )}
       {filteredItems.map((message) => (
-        <div key={message.id} data-message-id={message.id}>
+        <div
+          key={message.id}
+          data-message-id={message.id}
+          className={
+            highlightedReplyId === message.id
+              ? 'rounded-xl ring-2 ring-amber-400/80 transition-shadow duration-300'
+              : undefined
+          }
+        >
           <MessageItem
-            message={message}
+            message={{
+              ...message,
+              replyTo: message.replyToId
+                ? (() => {
+                    const repliedMessage = items.find((item) => item.id === message.replyToId);
+                    if (!repliedMessage) {
+                      return {
+                        id: message.replyToId,
+                        text: '',
+                        sender: 'other' as const,
+                        isDeleted: false,
+                        type: undefined,
+                      };
+                    }
+                    return {
+                      id: repliedMessage.id,
+                      text: repliedMessage.text,
+                      sender: repliedMessage.sender,
+                      isDeleted: repliedMessage.isDeleted,
+                      type: repliedMessage.type,
+                    };
+                  })()
+                : undefined,
+            }}
             highlight={searchQuery}
             isUpdating={updatingMessageId === message.id}
             onEdit={editMessage}
             onDelete={deleteMessage}
             onToggleReaction={toggleReaction}
+            onReply={() => triggerReply(message)}
+            onJumpToMessage={scrollToMessageById}
+            onMediaUnavailable={hideUnavailableMessage}
             myUserId={myId}
             status={
               message.sender === 'me'

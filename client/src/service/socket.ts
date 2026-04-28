@@ -2,8 +2,19 @@ import io from "socket.io-client";
 import { IUser } from "../models/user";
 import { API_BASE_URL } from "../config/env";
 let socket: ReturnType<typeof io> | null = null;
+const newMessageHandlers = new Set<(payload: any) => void>();
 
 const SOCKET_URL = API_BASE_URL;
+
+const forwardNewMessage = (payload: any) => {
+    newMessageHandlers.forEach((handler) => {
+        try {
+            handler(payload);
+        } catch (err) {
+            console.error('newMessage handler failed:', err);
+        }
+    });
+};
 
 export const connectSocket = (user: IUser | null | undefined) => {
     if (!user) {
@@ -32,10 +43,12 @@ export const connectSocket = (user: IUser | null | undefined) => {
     socket.on('disconnect', (reason: string) => {
         console.log('🔌 Socket disconnected:', reason);
     });
+    socket.on('newMessage', forwardNewMessage);
 };
 
 export const disconnectSocket = () => {
     if (socket) {
+        socket.off('newMessage', forwardNewMessage);
         socket.disconnect();
         socket = null;
     }
@@ -44,9 +57,10 @@ export const disconnectSocket = () => {
 export const getSocket = () => socket;
 
 export const onNewMessage = (handler: (payload: any) => void) => {
-    if (!socket) return;
-    socket.off('newMessage');
-    socket.on('newMessage', handler);
+    newMessageHandlers.add(handler);
+    return () => {
+        newMessageHandlers.delete(handler);
+    };
 };
 
 // ---------- Presence ----------

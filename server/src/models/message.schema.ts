@@ -1,10 +1,11 @@
 import mongoose, { Document, Schema } from "mongoose";
 import { MessageType, type Message as SharedMessage } from "../../../shared/types/domain";
 
-export interface Imessage extends Document, Omit<SharedMessage, '_id' | 'conversationId' | 'sender' | 'receiver' | 'createdAt' | 'updatedAt'> {
+export interface Imessage extends Document, Omit<SharedMessage, '_id' | 'conversationId' | 'sender' | 'receiver' | 'replyTo' | 'createdAt' | 'updatedAt'> {
     conversationId: Schema.Types.ObjectId,
     sender: Schema.Types.ObjectId,
     receiver: Schema.Types.ObjectId,
+    replyTo?: Schema.Types.ObjectId | null,
     deliveredAt?: Date | null,
     readAt?: Date | null,
     editedAt?: Date | null,
@@ -19,6 +20,7 @@ const MessageSchema = new Schema<Imessage>({
     conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true },
     sender: {type: Schema.Types.ObjectId,  required: true},
     receiver: {type: Schema.Types.ObjectId, required: true},
+    replyTo: { type: Schema.Types.ObjectId, ref: 'Message', default: null },
     type: {type: String, enum: [MessageType.text, MessageType.image, MessageType.video, MessageType.audio, MessageType.file], default: MessageType.text},
     content: {type: String, required: false},
     originalContent: { type: String, default: null },
@@ -44,6 +46,7 @@ MessageSchema.index({ receiver: 1, deliveredAt: 1 });
 MessageSchema.index({ receiver: 1, sender: 1, readAt: 1 });
 MessageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
 MessageSchema.index({ conversationId: 1, createdAt: -1 });
+MessageSchema.index({ replyTo: 1 });
 
 const applyExcludeDeletedFilter = function (this: any, next: (err?: Error) => void) {
     const options = this.getOptions?.() ?? {};

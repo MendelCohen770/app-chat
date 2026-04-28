@@ -152,6 +152,20 @@
       "pick": "React with {{emoji}}",
       "toggle": "Toggle reaction"
     },
+    "reply": {
+      "action": "Reply",
+      "cancel": "Cancel reply",
+      "replyingToMe": "You",
+      "replyingToOther": "Reply",
+      "originalUnavailable": "Original message is unavailable",
+      "typeLabel": {
+        "text": "Text message",
+        "image": "Image",
+        "video": "Video",
+        "audio": "Voice message",
+        "file": "File"
+      }
+    },
     "editedSuffix": "(edited)",
     "deletedMessage": "This message was deleted",
     "voice": {

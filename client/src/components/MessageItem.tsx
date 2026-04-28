@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiFile, FiDownload, FiEdit2, FiTrash2, FiCheck, FiX, FiSmile } from 'react-icons/fi';
+import { FiFile, FiDownload, FiEdit2, FiTrash2, FiCheck, FiX, FiSmile, FiCornerUpLeft } from 'react-icons/fi';
 import VoiceMessagePlayer from './VoiceMessagePlayer';
 import { API_BASE_URL } from '../config/env';
 
@@ -16,6 +16,13 @@ type Message = {
   editedAtIso?: string | null;
   isDeleted?: boolean;
   reactions?: Array<{ userId: string; emoji: string }>;
+  replyTo?: {
+    id: string;
+    text: string;
+    sender: 'me' | 'other';
+    isDeleted?: boolean;
+    type?: MessageKind;
+  };
 };
 
 export type ReadReceiptStatus = 'sent' | 'delivered' | 'read';
@@ -28,6 +35,9 @@ interface MessageItemProps {
   onEdit?: (messageId: string, content: string) => Promise<boolean>;
   onDelete?: (messageId: string) => Promise<boolean>;
   onToggleReaction?: (messageId: string, emoji: string, shouldAdd: boolean) => Promise<boolean>;
+  onReply?: () => void;
+  onJumpToMessage?: (messageId: string) => void;
+  onMediaUnavailable?: (messageId: string) => void;
   myUserId?: string;
 }
 
@@ -144,6 +154,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
   onEdit,
   onDelete,
   onToggleReaction,
+  onReply,
+  onJumpToMessage,
+  onMediaUnavailable,
   myUserId,
 }) => {
   const { t } = useTranslation();
@@ -151,13 +164,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const isDeleted = Boolean(message.isDeleted);
   const mediaUrl = resolveMediaUrl(message.media);
   const hasMedia = !!mediaUrl;
-  const isAudio = message.type === 'audio' && hasMedia;
-  const isImage = message.type === 'image' && hasMedia;
-  const isVideo = message.type === 'video' && hasMedia;
-  const isFile = message.type === 'file' && hasMedia;
+  const isAudio = !isDeleted && message.type === 'audio' && hasMedia;
+  const isImage = !isDeleted && message.type === 'image' && hasMedia;
+  const isVideo = !isDeleted && message.type === 'video' && hasMedia;
+  const isFile = !isDeleted && message.type === 'file' && hasMedia;
   const isMediaBubble = isImage || isVideo || isFile;
-  const canEditOrDelete = isMine && !isDeleted && !isMediaBubble && !isAudio && typeof onDelete === 'function';
+  const canEdit = isMine && !isDeleted && !isMediaBubble && !isAudio && typeof onEdit === 'function';
+  const canDelete = isMine && !isDeleted && typeof onDelete === 'function';
   const canReact = !isDeleted && typeof onToggleReaction === 'function';
+  const canReply = !isDeleted && typeof onReply === 'function';
 
   const fileName = useMemo(() => extractFileName(message), [message]);
   const [isEditing, setIsEditing] = useState(false);
@@ -224,6 +239,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
     return Array.from(groups.values());
   }, [message.reactions, myUserId]);
 
+  const replySnippet = (() => {
+    const reply = message.replyTo;
+    if (!reply) return null;
+    if (reply.isDeleted) return t('chat.deletedMessage');
+    if (reply.text?.trim()) return reply.text;
+    if (reply.type) return t(`chat.reply.typeLabel.${reply.type}`);
+    return t('chat.reply.originalUnavailable');
+  })();
+
   const toggleReactionByEmoji = async (emoji: string) => {
     if (!onToggleReaction) return;
     const mine = (message.reactions || []).some(
@@ -238,7 +262,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
       <article
         aria-label={ariaLabel.trim()}
         className={[
-          'group relative max-w-[83%] sm:max-w-[68%] rounded-2xl text-sm leading-snug break-words shadow-sm',
+          'group relative rounded-2xl text-sm leading-snug break-words shadow-sm',
+          !isMediaBubble && !isAudio ? 'w-[160px] max-w-[160px]' : 'max-w-[94%] sm:max-w-[82%]',
           isMediaBubble ? 'p-1.5' : 'px-3 py-2.5',
           isMine
             ? 'bg-orange-500 text-white rounded-br-sm'
@@ -247,8 +272,30 @@ const MessageItem: React.FC<MessageItemProps> = ({
       >
         {isAudio && (
           <div className="pe-12">
-            <VoiceMessagePlayer src={mediaUrl || ''} isMine={isMine} />
+            <VoiceMessagePlayer
+              src={mediaUrl || ''}
+              isMine={isMine}
+              onUnavailable={() => onMediaUnavailable?.(message.id)}
+            />
           </div>
+        )}
+
+        {message.replyTo && (
+          <button
+            type="button"
+            className={[
+              'mb-2 block w-full rounded-lg border px-2.5 py-2 text-start',
+              isMine
+                ? 'border-orange-200/40 bg-orange-400/20 hover:bg-orange-400/30'
+                : 'border-slate-500/80 bg-slate-600/70 hover:bg-slate-600',
+            ].join(' ')}
+            onClick={() => onJumpToMessage?.(message.replyTo?.id || '')}
+          >
+            <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide opacity-80">
+              {t(message.replyTo.sender === 'me' ? 'chat.reply.replyingToMe' : 'chat.reply.replyingToOther')}
+            </span>
+            <span className="line-clamp-1 block text-xs opacity-95">{replySnippet}</span>
+          </button>
         )}
 
         {isImage && (
@@ -331,42 +378,56 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         )}
 
-        {(canEditOrDelete || canReact) && !isEditing && (
-          <div className="absolute -top-2 end-2 hidden group-hover:flex items-center gap-1 rounded-md bg-slate-900/85 p-1">
+        {(canEdit || canDelete || canReact || canReply) && !isEditing && (
+          <div className="absolute -top-3 end-2 hidden group-hover:flex items-center gap-1.5 rounded-lg bg-slate-900/90 p-1.5">
+            {canReply && (
+              <button
+                type="button"
+                title={t('chat.reply.action')}
+                aria-label={t('chat.reply.action')}
+                className="rounded-md p-1.5 hover:bg-slate-700 disabled:opacity-60"
+                onClick={() => onReply?.()}
+                disabled={Boolean(isUpdating)}
+              >
+                <FiCornerUpLeft size={16} />
+              </button>
+            )}
             {canReact && (
               <button
                 type="button"
                 title={t('chat.reactions.add')}
                 aria-label={t('chat.reactions.add')}
-                className="rounded p-1 hover:bg-slate-700 disabled:opacity-60"
+                className="rounded-md p-1.5 hover:bg-slate-700 disabled:opacity-60"
                 onClick={() => setIsReactionPickerOpen((prev) => !prev)}
                 disabled={Boolean(isUpdating)}
               >
-                <FiSmile size={13} />
+                <FiSmile size={16} />
               </button>
             )}
-            {typeof onEdit === 'function' && (
+            {canEdit && (
               <button
                 type="button"
                 title={t('chat.actions.edit')}
-                className="rounded p-1 hover:bg-slate-700 disabled:opacity-60"
+                className="rounded-md p-1.5 hover:bg-slate-700 disabled:opacity-60"
                 onClick={() => setIsEditing(true)}
                 disabled={Boolean(isUpdating)}
                 aria-label={t('chat.actions.edit')}
               >
-                <FiEdit2 size={13} />
+                <FiEdit2 size={16} />
               </button>
             )}
-            <button
-              type="button"
-              title={t('chat.actions.delete')}
-              className="rounded p-1 hover:bg-slate-700 disabled:opacity-60"
-              onClick={() => void onDelete?.(message.id)}
-              disabled={Boolean(isUpdating)}
-              aria-label={t('chat.actions.delete')}
-            >
-              <FiTrash2 size={13} />
-            </button>
+            {canDelete && (
+              <button
+                type="button"
+                title={t('chat.actions.delete')}
+                className="rounded-md p-1.5 hover:bg-slate-700 disabled:opacity-60"
+                onClick={() => void onDelete?.(message.id)}
+                disabled={Boolean(isUpdating)}
+                aria-label={t('chat.actions.delete')}
+              >
+                <FiTrash2 size={16} />
+              </button>
+            )}
           </div>
         )}
         {groupedReactions.length > 0 && (

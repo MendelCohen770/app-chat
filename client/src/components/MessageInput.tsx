@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { BsEmojiSunglasses } from 'react-icons/bs';
+import { FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import SendButton from './SendButton';
 import MediaUploader from './MediaUploader';
@@ -60,6 +61,7 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
 
   const selectedUserId = chat?.selectedUser?._id ?? null;
   const currentUserId = userCtx?.user?._id ?? null;
+  const replyTarget = chat?.replyTarget ?? null;
 
   useEffect(() => {
     const previousReceiver = receiverIdRef.current;
@@ -98,6 +100,11 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!chat?.messageInputFocusRequestId) return;
+    inputRef.current?.focus();
+  }, [chat?.messageInputFocusRequestId]);
+
   const handleEmojiClick = (emojiObject: any) => {
     setMessage((prev) => prev + emojiObject.emoji);
     setShowPicker(false);
@@ -130,9 +137,12 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
         receiver: otherId,
         type: 'text',
         content: trimmed,
+        replyTo: replyTarget?.id,
       });
       sendMessage(trimmed);
       setMessage('');
+      chat?.clearReplyTarget?.();
+      chat?.requestMessageInputFocus?.();
       removeStorage(STORAGE_KEYS.draftMessageByChat(myId, otherId));
       stopTyping();
       inputRef.current?.focus();
@@ -156,34 +166,58 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
   const hasText = message.trim().length > 0;
 
   return (
-    <div className="relative flex items-center gap-2 w-full">
-      <MediaUploader />
+    <div className="relative flex w-full flex-col gap-2">
+      {replyTarget && (
+        <div className="rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-2">
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <span className="text-xs font-medium text-indigo-300">
+              {t(replyTarget.sender === 'me' ? 'chat.reply.replyingToMe' : 'chat.reply.replyingToOther')}
+            </span>
+            <button
+              type="button"
+              className="rounded p-1 text-slate-300 hover:bg-slate-700 hover:text-white"
+              onClick={() => chat?.clearReplyTarget?.()}
+              aria-label={t('chat.reply.cancel')}
+            >
+              <FiX size={14} />
+            </button>
+          </div>
+          <p className="line-clamp-2 text-xs text-slate-200">
+            {replyTarget.isDeleted
+              ? t('chat.deletedMessage')
+              : replyTarget.text ||
+                t(replyTarget.type ? `chat.reply.typeLabel.${replyTarget.type}` : 'chat.reply.originalUnavailable')}
+          </p>
+        </div>
+      )}
+      <div className="relative flex items-center gap-2 w-full">
+        <MediaUploader />
 
-      <button
+        <button
         type="button"
         onClick={() => setShowPicker((v) => !v)}
         aria-label={t(showPicker ? 'chat.closeEmoji' : 'chat.openEmoji')}
         aria-expanded={showPicker}
         aria-haspopup="dialog"
         className="inline-flex items-center justify-center h-11 w-11 rounded-md bg-slate-700 text-indigo-300 hover:bg-slate-600 hover:text-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-      >
-        <BsEmojiSunglasses size={22} />
-      </button>
+        >
+          <BsEmojiSunglasses size={22} />
+        </button>
 
-      {showPicker && (
-        <div
+        {showPicker && (
+          <div
           role="dialog"
           aria-label={t('chat.openEmoji')}
           className="absolute bottom-14 start-0 z-20 shadow-xl"
-        >
-          <EmojiPicker onEmojiClick={handleEmojiClick} theme={'dark' as Theme} />
-        </div>
-      )}
+          >
+            <EmojiPicker onEmojiClick={handleEmojiClick} theme={'dark' as Theme} />
+          </div>
+        )}
 
-      <label htmlFor="message-input" className="sr-only">
-        {t('chat.messageInputPlaceholder')}
-      </label>
-      <input
+        <label htmlFor="message-input" className="sr-only">
+          {t('chat.messageInputPlaceholder')}
+        </label>
+        <input
         ref={inputRef}
         id="message-input"
         type="text"
@@ -195,13 +229,14 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
         className="flex-1 h-11 bg-slate-700 text-white rounded-md px-3 placeholder:text-slate-400 border border-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
         disabled={sending}
         autoComplete="off"
-      />
+        />
 
-      {hasText ? (
-        <SendButton onSend={handleSendMessage} disabled={sending} />
-      ) : (
-        <Recordings />
-      )}
+        {hasText ? (
+          <SendButton onSend={handleSendMessage} disabled={sending} />
+        ) : (
+          <Recordings />
+        )}
+      </div>
     </div>
   );
 };

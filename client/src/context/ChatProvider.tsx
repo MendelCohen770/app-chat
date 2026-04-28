@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { IUser } from "../models/user";
-import { ChatContext } from "./ChatContext";
+import { ChatContext, type ChatReplyTarget } from "./ChatContext";
 import { useUser } from "./useUser";
 import { readStorage, removeStorage, STORAGE_KEYS, writeStorage } from "../storage/localStorage";
 
@@ -9,6 +9,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [searchOpen, setSearchOpen] = useState<boolean>(false);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [scrollToBottomRequestId, setScrollToBottomRequestId] = useState<number>(0);
+    const [messageInputFocusRequestId, setMessageInputFocusRequestId] = useState<number>(0);
+    const [replyTarget, setReplyTargetState] = useState<ChatReplyTarget | null>(null);
     const userContext = useUser();
     const currentUserId = userContext?.user?._id ?? null;
 
@@ -25,12 +27,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const requestScrollToBottom = useCallback(() => {
         setScrollToBottomRequestId((id) => id + 1);
     }, []);
+    const requestMessageInputFocus = useCallback(() => {
+        setMessageInputFocusRequestId((id) => id + 1);
+    }, []);
+    const setReplyTarget = useCallback((target: ChatReplyTarget | null) => {
+        setReplyTargetState(target);
+    }, []);
+    const clearReplyTarget = useCallback(() => {
+        setReplyTargetState(null);
+    }, []);
 
     // Reset search whenever the active conversation changes so filters don't
     // silently persist across different contacts.
     useEffect(() => {
         setSearchOpen(false);
         setSearchQuery("");
+        setReplyTargetState(null);
     }, [selectedUser?._id]);
 
     useEffect(() => {
@@ -69,6 +81,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setSearchQuery,
                 scrollToBottomRequestId,
                 requestScrollToBottom,
+                messageInputFocusRequestId,
+                requestMessageInputFocus,
+                replyTarget,
+                setReplyTarget,
+                clearReplyTarget,
             }}
         >
             {children}

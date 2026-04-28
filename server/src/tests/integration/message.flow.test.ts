@@ -100,4 +100,34 @@ describe('messages integration', () => {
     expect(getResponse.status).toBe(200);
     expect(getResponse.body?.data?.items?.[0]?.readAt).toBeTruthy();
   });
+
+  it('stores replyTo when sending a reply in the same conversation', async () => {
+    const { app } = createApp('http://localhost:5173');
+    const sender = await registerAndLogin(app, {
+      username: 'sender-reply',
+      email: 'sender-reply@example.com',
+      phone: '323456789',
+    });
+    const receiver = await registerAndLogin(app, {
+      username: 'receiver-reply',
+      email: 'receiver-reply@example.com',
+      phone: '787654321',
+    });
+
+    const firstMessageResponse = await sender.agent.post('/message/sendMessage').send({
+      receiver: receiver.userId,
+      type: 'text',
+      content: 'first',
+    });
+    expect(firstMessageResponse.status).toBe(200);
+
+    const replyMessageResponse = await receiver.agent.post('/message/sendMessage').send({
+      receiver: sender.userId,
+      type: 'text',
+      content: 'second (reply)',
+      replyTo: firstMessageResponse.body?.data?._id,
+    });
+    expect(replyMessageResponse.status).toBe(200);
+    expect(replyMessageResponse.body?.data?.replyTo).toBe(firstMessageResponse.body?.data?._id);
+  });
 });

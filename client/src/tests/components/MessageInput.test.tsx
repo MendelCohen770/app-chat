@@ -5,6 +5,7 @@ import MessageInput from '../../components/MessageInput';
 const emitTypingStartMock = vi.fn();
 const emitTypingStopMock = vi.fn();
 const sendMessageSpy = vi.fn();
+const apiPostMock = vi.fn();
 
 vi.mock('../../context/useUser', () => ({
   useUser: () => ({
@@ -21,6 +22,12 @@ vi.mock('../../context/useChat', () => ({
 vi.mock('../../service/socket', () => ({
   emitTypingStart: (...args: unknown[]) => emitTypingStartMock(...args),
   emitTypingStop: (...args: unknown[]) => emitTypingStopMock(...args),
+}));
+
+vi.mock('../../service/apiClient', () => ({
+  default: {
+    post: (...args: unknown[]) => apiPostMock(...args),
+  },
 }));
 
 vi.mock('react-i18next', () => ({
@@ -54,12 +61,7 @@ vi.mock('emoji-picker-react', () => ({
 describe('MessageInput', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-      }),
-    );
+    apiPostMock.mockResolvedValue({ data: { data: {} } });
   });
 
   it('shows recordings when empty and send button once text exists', () => {
@@ -86,7 +88,7 @@ describe('MessageInput', () => {
     await waitFor(() => {
       expect(sendMessageSpy).toHaveBeenCalledWith('hello world');
     });
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(apiPostMock).toHaveBeenCalledTimes(1);
     expect(emitTypingStopMock).toHaveBeenCalledWith('other-1');
   });
 });

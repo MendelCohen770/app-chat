@@ -1,5 +1,14 @@
 import { createContext } from "react";
 import { IUser } from "../models/user";
+import { MessageType } from "../models/message";
+
+export type ChatReplyTarget = {
+    id: string;
+    text: string;
+    sender: 'me' | 'other';
+    type?: MessageType;
+    isDeleted?: boolean;
+};
 
 export type ChatContextType = {
     selectedUser: IUser | null;
@@ -11,6 +20,11 @@ export type ChatContextType = {
     setSearchQuery: (q: string) => void;
     scrollToBottomRequestId: number;
     requestScrollToBottom: () => void;
+    messageInputFocusRequestId: number;
+    requestMessageInputFocus: () => void;
+    replyTarget: ChatReplyTarget | null;
+    setReplyTarget: (target: ChatReplyTarget | null) => void;
+    clearReplyTarget: () => void;
 };
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);

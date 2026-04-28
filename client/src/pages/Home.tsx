@@ -24,7 +24,12 @@ export default function Home() {
     return () => disconnectSocket();
   }, [user]);
 
-  const backToList = () => setMobileView('list');
+  const backToList = () => {
+    setMobileView('list');
+    chatContext?.setSelectedUser(null);
+    chatContext?.clearReplyTarget?.();
+    chatContext?.closeSearch?.();
+  };
 
   return (
     <div className="bg-slate-900 h-svh text-slate-300 flex flex-col p-2 sm:p-4">

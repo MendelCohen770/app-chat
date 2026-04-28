@@ -67,9 +67,11 @@ interface VoiceMessagePlayerProps {
     src: string;
     /** Whether the message was sent by the current user (affects color scheme). */
     isMine: boolean;
+    /** Called when the audio file cannot be loaded (e.g. missing on server). */
+    onUnavailable?: () => void;
 }
 
-const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine }) => {
+const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine, onUnavailable }) => {
     const { t } = useTranslation();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const mountedRef = useRef(true);
@@ -82,6 +84,13 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine }) 
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState<number>(0);
     const [waveformError, setWaveformError] = useState(false);
+    const unavailableNotifiedRef = useRef(false);
+
+    const notifyUnavailableOnce = useCallback(() => {
+        if (unavailableNotifiedRef.current) return;
+        unavailableNotifiedRef.current = true;
+        onUnavailable?.();
+    }, [onUnavailable]);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -92,6 +101,7 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine }) 
 
     useEffect(() => {
         let cancelled = false;
+        unavailableNotifiedRef.current = false;
         setLoadingWave(true);
         setWaveformError(false);
         decodeWaveform(src)
@@ -108,11 +118,15 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine }) 
                 if (cancelled || !mountedRef.current) return;
                 setLoadingWave(false);
                 setWaveformError(true);
+                const status = Number((err as any)?.response?.status || 0);
+                if (status === 404) {
+                    notifyUnavailableOnce();
+                }
             });
         return () => {
             cancelled = true;
         };
-    }, [src]);
+    }, [src, notifyUnavailableOnce]);
 
     const togglePlayback = useCallback(() => {
         const a = audioRef.current;
@@ -184,6 +198,7 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine }) 
                     src={src}
                     controls
                     preload="metadata"
+                    onError={notifyUnavailableOnce}
                     className="flex-1 max-w-full"
                     aria-label={t('chat.voice.messageLabel')}
                 />
@@ -234,6 +249,7 @@ const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({ src, isMine }) 
                             const t = e.currentTarget.currentTime;
                             if (isFinite(t)) setCurrentTime(t);
                         }}
+                        onError={notifyUnavailableOnce}
                         className="hidden"
                     />
                 </>

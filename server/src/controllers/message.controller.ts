@@ -27,6 +27,7 @@ const emitNewMessage = (message: any) => {
                 conversationId: String(message.conversationId),
                 senderId: String(message.sender),
                 receiverId: String(message.receiver),
+                replyTo: message.replyTo ? String(message.replyTo) : null,
                 type: message.type,
                 content: message.content,
                 originalContent: message.originalContent || null,
@@ -145,18 +146,37 @@ const createAndPersistMessage = async ({
     type,
     content,
     media,
+    replyTo,
 }: {
     sender: string;
     receiver: string;
     type: MessageType;
     content?: string;
     media?: string;
+    replyTo?: string;
 }) => {
     const conversation = await getConversationForDm(sender, receiver);
+    let replyToId: string | null = null;
+    if (replyTo) {
+        if (!objectIdRegex.test(replyTo)) {
+            throw new AppError(400, 'Invalid request', '`replyTo` must be a valid message id');
+        }
+        const repliedMessage = await Message.findById(replyTo);
+        if (!repliedMessage) {
+            throw new AppError(404, 'Message not found', '`replyTo` message does not exist');
+        }
+        await ensureMessageConversationId(repliedMessage);
+        if (String(repliedMessage.conversationId) !== String(conversation._id)) {
+            throw new AppError(400, 'Invalid request', '`replyTo` message is outside this conversation');
+        }
+        replyToId = String(repliedMessage._id);
+    }
+
     const message = new Message({
         conversationId: conversation._id,
         sender,
         receiver,
+        replyTo: replyToId,
         type,
         content,
         media,
@@ -177,7 +197,7 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(401, 'Authentication failed', 'No authenticated user');
     }
 
-    const { receiver, type, content, media } = req.body;
+    const { receiver, type, content, media, replyTo } = req.body;
     if (!receiver || !type) {
         throw new AppError(400, 'Please provide all the required fields', 'One of the fields (or more) is missing');
     }
@@ -188,6 +208,7 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
         type,
         content,
         media,
+        replyTo,
     });
     emitNewMessage(message);
 
@@ -292,7 +313,7 @@ const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
             throw new AppError(401, 'Authentication failed', 'No authenticated user');
         }
 
-        const { receiver } = req.body;
+        const { receiver, replyTo } = req.body as { receiver?: string; replyTo?: string };
         if (!receiver) {
             throw new AppError(400, 'Please provide all the required fields', 'receiver field is missing');
         }
@@ -308,6 +329,7 @@ const sendVoiceMessage = asyncHandler(async (req: Request, res: Response) => {
             type: MessageType.audio,
             content: '',
             media: mediaUrl,
+            replyTo,
         });
         emitNewMessage(message);
 
@@ -339,7 +361,12 @@ const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
             throw new AppError(401, 'Authentication failed', 'No authenticated user');
         }
 
-        const { receiver, type, content } = req.body as { receiver?: string; type?: string; content?: string };
+        const { receiver, type, content, replyTo } = req.body as {
+            receiver?: string;
+            type?: string;
+            content?: string;
+            replyTo?: string;
+        };
         if (!receiver) {
             throw new AppError(400, 'Please provide all the required fields', 'receiver field is missing');
         }
@@ -356,6 +383,7 @@ const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
             type: resolvedType,
             content: content || file.originalname || '',
             media: mediaUrl,
+            replyTo,
         });
         emitNewMessage(message);
 

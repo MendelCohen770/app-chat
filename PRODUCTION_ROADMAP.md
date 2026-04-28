@@ -374,12 +374,13 @@
 
 ## P2.5 — Reply / Quote
 
-- [ ] **Schema**
-  - [ ] `replyTo: ObjectId` (ref to message)
-- [ ] **Client**
-  - [ ] כפתור Reply ב-hover
-  - [ ] תצוגת הודעה מצוטטת מעל ההודעה
-  - [ ] לחיצה על ציטוט → גלילה להודעה המקורית
+- [x] **Schema**
+  - [x] `replyTo: ObjectId` (ref to message)
+- [x] **Client**
+  - [x] כפתור Reply ב-hover
+  - [x] תצוגת הודעה מצוטטת מעל ההודעה
+  - [x] לחיצה על ציטוט → גלילה להודעה המקורית
+  - [x] commit: `git commit -m "feat(chat): add reply and quote flow with message jump-to-source UX"`
 
 ## P2.6 — צ'אטים קבוצתיים
 

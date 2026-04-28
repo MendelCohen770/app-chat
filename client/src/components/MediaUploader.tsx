@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useUser } from '../context/useUser';
 import { useChat } from '../context/useChat';
-import { API_BASE_URL } from '../config/env';
+import apiClient from '../service/apiClient';
 
 type UploadKind = 'image' | 'video' | 'file';
 
@@ -72,7 +72,6 @@ const MediaUploader: React.FC = () => {
       return;
     }
 
-    const url = `${API_BASE_URL}/message/sendMedia`;
     const form = new FormData();
     form.append('media', file, file.name);
     form.append('receiver', otherId);
@@ -84,12 +83,7 @@ const MediaUploader: React.FC = () => {
     setUploading(true);
     const toastId = toast.loading(t('chat.media.uploading'));
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await apiClient.post('/message/sendMedia', form);
       toast.success(t('chat.media.uploaded'), { id: toastId });
     } catch (err) {
       console.error('media upload failed', err);

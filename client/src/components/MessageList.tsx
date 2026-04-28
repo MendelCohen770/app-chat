@@ -10,7 +10,7 @@ import {
   type MessageStatusPayload,
 } from '../service/socket';
 import { LoadingState, EmptyState, ErrorState } from './ui/States';
-import { API_BASE_URL } from '../config/env';
+import apiClient from '../service/apiClient';
 
 type MessageKind = 'text' | 'image' | 'video' | 'audio' | 'file';
 type MessageVm = {
@@ -68,11 +68,8 @@ const fetchMessagesPage = async (
     limit: String(PAGE_SIZE),
   });
   if (before) params.set('before', before);
-  const res = await fetch(`${API_BASE_URL}/message/getMessages?${params.toString()}`, {
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
+  const res = await apiClient.get(`/message/getMessages?${params.toString()}`);
+  const json = res.data;
   const data = json?.data || {};
   const rawItems: any[] = Array.isArray(data.items) ? data.items : [];
   // Server returns newest-first; reverse so oldest appears first in the UI list.

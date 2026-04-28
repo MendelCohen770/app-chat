@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { useUser } from '../context/useUser';
 import { useChat } from '../context/useChat';
 import Waveform, { buildPreviewBars, formatDuration } from './ui/Waveform';
-import { API_BASE_URL } from '../config/env';
+import apiClient from '../service/apiClient';
 
 type RecorderMode = 'idle' | 'recording' | 'preview' | 'uploading';
 
@@ -288,7 +288,6 @@ const Recordings = () => {
       toast.error(t('common.error'));
       return;
     }
-    const url = `${API_BASE_URL}/message/sendVoice`;
     const form = new FormData();
     const ext = extensionFor(mimeRef.current || blob.type);
     form.append('audio', blob, `voice-${Date.now()}.${ext}`);
@@ -296,12 +295,7 @@ const Recordings = () => {
 
     setMode('uploading');
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await apiClient.post('/message/sendVoice', form);
       resetState();
     } catch (err) {
       console.error('voice upload failed', err);

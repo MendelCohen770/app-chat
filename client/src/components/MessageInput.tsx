@@ -8,7 +8,7 @@ import MediaUploader from './MediaUploader';
 import Recordings from './Recordings';
 import { useUser } from '../context/useUser';
 import { useChat } from '../context/useChat';
-import { API_BASE_URL } from '../config/env';
+import apiClient from '../service/apiClient';
 import { emitTypingStart, emitTypingStop } from '../service/socket';
 
 interface sendMessageProps {
@@ -106,16 +106,14 @@ const MessageInput: React.FC<sendMessageProps> = ({ sendMessage }) => {
     const otherId = chat?.selectedUser?._id;
     const trimmed = message.trim();
     if (!myId || !otherId || !trimmed) return;
-    const url = `${API_BASE_URL}/message/sendMessage`;
     setSending(true);
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ sender: myId, receiver: otherId, type: 'text', content: trimmed }),
+      await apiClient.post('/message/sendMessage', {
+        sender: myId,
+        receiver: otherId,
+        type: 'text',
+        content: trimmed,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       sendMessage(trimmed);
       setMessage('');
       stopTyping();

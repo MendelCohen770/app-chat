@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaPlay, FaPause } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import Waveform, { buildPreviewBars, formatDuration } from './ui/Waveform';
+import apiClient from '../service/apiClient';
 
 const PLAYER_BAR_COUNT = 40;
 
@@ -24,9 +25,8 @@ const decodeWaveform = async (
         return { bars: new Array(PLAYER_BAR_COUNT).fill(0.2), duration: 0 };
     }
 
-    const response = await fetch(url, { credentials: 'include' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const arrayBuffer = await response.arrayBuffer();
+    const response = await apiClient.get<ArrayBuffer>(url, { responseType: 'arraybuffer' });
+    const arrayBuffer = response.data;
     const ctx = new AudioCtxCtor();
     try {
         // Safari returns undefined from decodeAudioData if passed a callback

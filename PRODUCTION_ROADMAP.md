@@ -286,9 +286,10 @@
 
 ## P1.8 — איחוד והקשחת ה-Frontend
 
-- [ ] **API Client אחיד**
-  - [ ] להחליף את כל ה-`fetch` ב-`axios` instance מרכזי
-  - [ ] interceptors: auth error → redirect, network error → toast
+- [x] **API Client אחיד**
+  - [x] להחליף את כל ה-`fetch` ב-`axios` instance מרכזי
+  - [x] interceptors: auth error → redirect, network error → toast
+  - [x] commit: `git commit -m "refactor(client): unify HTTP via axios client and global interceptors"`
 - [ ] **Loading & Error States אחידים**
   - [ ] Skeleton loaders ל-MessageList, UserList
   - [ ] Error states מעוצבים

@@ -1,7 +1,7 @@
-import axios from "axios";
 import { ISignup } from "../models/signup";
 import { IResponse } from "../models/response";
 import { API_BASE_URL, resolveMediaUrl } from "../config/env";
+import apiClient from "../service/apiClient";
 
 const BASE_URL = `${API_BASE_URL}/user`;
 
@@ -23,7 +23,7 @@ const toResponse = (e: any, fallback: string): IResponse => {
 
 export const signup = async (user: ISignup): Promise<any> => {
     try{
-    const response = await axios.post(`${BASE_URL}/signUp`,user,{ withCredentials: true } );
+    const response = await apiClient.post(`${BASE_URL}/signUp`,user);
     return response.data;
     }catch(e){
         console.error("Signup failed", e);
@@ -33,7 +33,7 @@ export const signup = async (user: ISignup): Promise<any> => {
 
 export const login = async (username: string, password: string): Promise<any> => {
     try{
-        const response = await axios.post(`${BASE_URL}/login`, {username, password}, {withCredentials: true})
+        const response = await apiClient.post(`${BASE_URL}/login`, {username, password})
         return response.data;
     }catch(e ) {
       console.log("Login failed", e);
@@ -43,10 +43,9 @@ export const login = async (username: string, password: string): Promise<any> =>
 
 export const requestOtp = async (email: string): Promise<any> => {
     try {
-        const response = await axios.post(
+        const response = await apiClient.post(
             `${BASE_URL}/otpService`,
             { email },
-            { withCredentials: true }
         );
         return response.data;
     } catch (e: any) {
@@ -66,10 +65,9 @@ export const requestOtp = async (email: string): Promise<any> => {
 
 export const verifyOtp = async (email: string, otp: string): Promise<any> => {
     try {
-        const response = await axios.post(
+        const response = await apiClient.post(
             `${BASE_URL}/verifyOTP`,
             { email, otp },
-            { withCredentials: true }
         );
         return response.data;
     } catch (e: any) {
@@ -89,10 +87,9 @@ export const verifyOtp = async (email: string, otp: string): Promise<any> => {
 
 export const googleLogin = async (credential: string): Promise<any> => {
     try{
-        const response = await axios.post(
+        const response = await apiClient.post(
             `${BASE_URL}/googleLogin`,
             { credential },
-            { withCredentials: true }
         );
         return response.data;
     }catch(e: any){
@@ -119,10 +116,9 @@ export interface IUpdateProfileInput {
 
 export const updateUserProfile = async (payload: IUpdateProfileInput): Promise<IResponse> => {
     try {
-        const response = await axios.post(
+        const response = await apiClient.post(
             `${BASE_URL}/updateUser`,
             payload,
-            { withCredentials: true },
         );
         return response.data as IResponse;
     } catch (e: any) {
@@ -135,11 +131,10 @@ export const uploadProfileIcon = async (file: File): Promise<IResponse> => {
     try {
         const formData = new FormData();
         formData.append('profileIcon', file);
-        const response = await axios.post(
+        const response = await apiClient.post(
             `${BASE_URL}/uploadProfileIcon`,
             formData,
             {
-                withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' },
             },
         );
@@ -155,10 +150,9 @@ export const changePassword = async (
     newPassword: string,
 ): Promise<IResponse> => {
     try {
-        const response = await axios.put(
+        const response = await apiClient.put(
             `${BASE_URL}/changePassword`,
             { password, newPassword },
-            { withCredentials: true },
         );
         return response.data as IResponse;
     } catch (e: any) {
@@ -169,10 +163,7 @@ export const changePassword = async (
 
 export const getUserDetails = async (): Promise<IResponse> => {
     try {
-        const response = await axios.get(
-            `${BASE_URL}/getUserDetails`,
-            { withCredentials: true },
-        );
+        const response = await apiClient.get(`${BASE_URL}/getUserDetails`);
         return response.data as IResponse;
     } catch (e: any) {
         console.log('Get user details failed', e);
@@ -182,11 +173,7 @@ export const getUserDetails = async (): Promise<IResponse> => {
 
 export const logoutUser = async (): Promise<IResponse> => {
     try {
-        const response = await axios.post(
-            `${BASE_URL}/logout`,
-            {},
-            { withCredentials: true },
-        );
+        const response = await apiClient.post(`${BASE_URL}/logout`, {});
         return response.data as IResponse;
     } catch (e: any) {
         console.log('Logout failed', e);

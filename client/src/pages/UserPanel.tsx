@@ -13,7 +13,7 @@ import { IUser } from '../models/user';
 import { LoadingState, EmptyState, ErrorState } from '../components/ui/States';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
 import { logoutUser, resolveMediaUrl } from '../hooks/UseUser';
-import { API_BASE_URL } from '../config/env';
+import apiClient from '../service/apiClient';
 
 const DEFAULT_AVATAR = 'https://www.prtfl.co.il/wp-content/uploads/2023/11/WhatsApp-Image-2023-11-20-at-14.19.59-1.jpg';
 const USERS_PAGE_SIZE = 20;
@@ -28,11 +28,8 @@ type UsersPage = {
 
 const fetchUsersPage = async (page: number, limit: number): Promise<UsersPage> => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-  const res = await fetch(`${API_BASE_URL}/user/getAllUsers?${params.toString()}`, {
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
+  const res = await apiClient.get(`/user/getAllUsers?${params.toString()}`);
+  const json = res.data;
   if (!json?.isSuccessful || !json?.data) throw new Error(json?.displayMessage || 'Failed');
   const data = json.data;
   return {

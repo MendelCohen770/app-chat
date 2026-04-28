@@ -269,10 +269,20 @@
   - [x] התקנה ב-client (`@sentry/react`)
   - [x] Source maps ב-production build
   - [ ] commit: `git commit -m "chore(observability): add sentry setup for server and client with production sourcemaps"`
-- [ ] **HTTP Access Logs**
-  - [ ] `morgan` או `pino-http`
-- [ ] **Health Dashboard** (אופציונלי)
-  - [ ] Uptime monitor (UptimeRobot / BetterStack)
+- [x] **HTTP Access Logs**
+  - [x] לבחור סטנדרט אחד: `pino-http` (מומלץ, עקבי עם `pino` שכבר קיים)
+  - [x] להוסיף middleware מוקדם ב-`server/src/index.ts` עם `genReqId` (אם חסר) ו-`customProps` (route, userId כשקיים)
+  - [x] לבצע redaction לשדות רגישים (cookies, authorization, tokens, passwords)
+  - [x] להגדיר דילוג על `GET /health` ו-`GET /ready` כדי להפחית רעש בלוגים
+  - [x] לוודא פורמט JSON בפרודקשן + `pino-pretty` רק ב-dev
+  - [x] commit: `git commit -m "chore(observability): add pino-http access logs with redaction and health-check noise filtering"`
+- [x] **Health Dashboard** (אופציונלי)
+  - [x] לבחור ספק ניטור: BetterStack או UptimeRobot
+  - [x] להגדיר בדיקת `GET /health` כל 30-60 שניות מ-2 אזורים לפחות
+  - [x] להגדיר Alert channels (Email + Slack/Telegram) עם escalation אחרי 2-3 כשלונות רצופים
+  - [x] להגדיר heartbeat job (אופציונלי) שמתריע גם במצב "שקט" כשאין תעבורה
+  - [x] לתעד runbook קצר: מה עושים כשיש alert (DB down / process down / latency חריגה)
+  - [x] commit: `git commit -m "chore(observability): document uptime dashboard setup, alerts, and incident runbook"`
 
 ## P1.8 — איחוד והקשחת ה-Frontend
 

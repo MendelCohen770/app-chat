@@ -22,6 +22,9 @@ export const correlationId = (req: Request, res: Response, next: NextFunction) =
 
 export const httpLogger = pinoHttp({
     logger,
+    autoLogging: {
+        ignore: (req) => req.url === '/health' || req.url === '/ready',
+    },
     genReqId: (req, res) => {
         const incoming = readIncomingId(req as Request);
         const id = incoming || randomUUID();
@@ -39,7 +42,10 @@ export const httpLogger = pinoHttp({
         `${req.method} ${req.url} -> ${res.statusCode} (${err?.message || 'error'})`,
     customProps: (req) => {
         const userId = (req as Request).user?.id;
-        return userId ? { userId } : {};
+        return {
+            route: req.url,
+            ...(userId ? { userId } : {}),
+        };
     },
     serializers: {
         req(req) {

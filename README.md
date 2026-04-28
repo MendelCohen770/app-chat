@@ -88,3 +88,20 @@ To serve the client production build, run your preferred static server against `
 
 - `GET /health` - Returns `200` with service uptime and DB status
 - `GET /ready` - Returns `200` only when server is ready (DB connected), otherwise `503`
+
+## Monitoring and Alerts
+
+- HTTP access logs are handled by `pino-http` with correlation IDs and sensitive field redaction.
+- Health-check routes (`/health`, `/ready`) are excluded from automatic access logs to reduce noise.
+
+Recommended uptime monitor setup (UptimeRobot or Better Stack):
+
+1. Create monitors for:
+   - `GET https://<your-domain>/health`
+   - `GET https://<your-domain>/ready`
+2. Interval: every 30-60 seconds from at least two regions.
+3. Alert policy: trigger incident after 2-3 consecutive failures.
+4. Alert channels: email + one realtime channel (Slack/Telegram).
+5. Runbook baseline:
+   - `/health` fails and `/ready` fails -> check process status and DB connectivity.
+   - `/health` OK and `/ready` fails -> DB issue or startup dependency issue.

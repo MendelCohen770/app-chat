@@ -297,9 +297,10 @@
   - [x] React Hook Form + Zod resolver
   - [x] שימוש בכל הטפסים (Login, Signup, Profile, ChangePassword)
   - [x] commit: `git commit -m "refactor(forms): unify validation with react-hook-form and zod across auth and profile flows"`
-- [ ] **TypeScript types חזקים**
-  - [ ] שיתוף types בין client ל-server (תיקיית `shared/` או package)
-  - [ ] להגדיר `User`, `Message`, `Conversation` כ-types יחידים
+- [x] **TypeScript types חזקים**
+  - [x] שיתוף types בין client ל-server (תיקיית `shared/` או package)
+  - [x] להגדיר `User`, `Message`, `Conversation` כ-types יחידים
+  - [x] commit: `git commit -m "refactor(types): share User/Message/Conversation contracts across client and server"`
 
 ## P1.9 — תיעוד
 

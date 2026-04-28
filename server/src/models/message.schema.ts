@@ -1,20 +1,10 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { MessageType, type Message as SharedMessage } from "../../../shared/types/domain";
 
-export enum MessageType {
-    text = 'text',
-    image = 'image',
-    video = 'video',
-    audio = 'audio',
-    file = 'file'
-}
-
-export interface Imessage extends Document{
+export interface Imessage extends Document, Omit<SharedMessage, 'conversationId' | 'sender' | 'receiver' | 'createdAt' | 'updatedAt'> {
     conversationId: Schema.Types.ObjectId,
     sender: Schema.Types.ObjectId,
     receiver: Schema.Types.ObjectId,
-    type: MessageType.text | MessageType.image | MessageType.video | MessageType.audio | MessageType.file,
-    content?: string,
-    media?: string,
     deliveredAt?: Date | null,
     readAt?: Date | null,
     deletedAt?: Date | null,

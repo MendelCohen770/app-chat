@@ -11,14 +11,14 @@ import {
 } from '../service/socket';
 import { MessageListSkeleton, EmptyState, ErrorState } from './ui/States';
 import apiClient from '../service/apiClient';
+import { MessageType } from '../models/message';
 
-type MessageKind = 'text' | 'image' | 'video' | 'audio' | 'file';
 type MessageVm = {
   id: string;
   text: string;
   sender: 'me' | 'other';
   timestamp: string;
-  type?: MessageKind;
+  type?: MessageType;
   media?: string;
   createdAtIso: string;
   deliveredAtIso: string | null;
@@ -49,7 +49,7 @@ const mapRow = (m: any, myId: string): MessageVm => {
     text: m.content || '',
     sender: String(m.sender) === myId ? 'me' : 'other',
     timestamp: formatTime(iso),
-    type: m.type as MessageKind | undefined,
+    type: m.type as MessageType | undefined,
     media: m.media,
     createdAtIso: iso,
     deliveredAtIso: toIsoOrNull(m.deliveredAt),
@@ -232,7 +232,7 @@ const MessageList = () => {
             text: content || '',
             sender: senderId === myId ? 'me' : 'other',
             timestamp: formatTime(iso),
-            type: type as MessageKind | undefined,
+            type: type as MessageType | undefined,
             media,
             createdAtIso: iso,
             deliveredAtIso: toIsoOrNull(deliveredAt),

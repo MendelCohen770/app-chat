@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { type Conversation as SharedConversation } from "../../../shared/types/domain";
 
-export interface IConversation extends Document {
+export interface IConversation extends Document, Omit<SharedConversation, 'participants' | 'lastMessage' | 'createdAt' | 'updatedAt'> {
     participants: mongoose.Types.ObjectId[];
     lastMessage?: mongoose.Types.ObjectId | null;
     createdAt?: Date;

@@ -1,21 +1,11 @@
 import { match } from 'assert';
 import mongoose, { Schema, Document} from 'mongoose'
+import { Role, type User as SharedUser } from '../../../shared/types/domain';
 
-export enum Role{
-    admin = 0,
-    user = 1,
-};
-export interface IUser extends Document {
+export interface IUser extends Document, Omit<SharedUser, 'createdAt' | 'updatedAt' | 'deletedAt'> {
     _id: string,
-    username: string,
-    email: string,
-    password?: string,
-    phone?: string,
-    googleId?: string,
     createdAt: Date;
     deletedAt?: Date | null;
-    profileIcon?: string; // שדה אופציונלי לאייקון המשתמש
-    role: Role;
 }
 const UserSchema: Schema = new Schema<IUser>({
     username: {type: String, required: true, unique: true, minlength: 2},

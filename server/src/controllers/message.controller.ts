@@ -1,4 +1,5 @@
-import Message, { MessageType } from "../models/message.schema";
+import Message from "../models/message.schema";
+import { MessageType } from "../../../shared/types/domain";
 import Conversation from "../models/conversation.schema";
 import { getIO, isUserOnline } from "../sockets/socket";
 import { Request, Response } from "express";

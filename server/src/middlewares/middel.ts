@@ -1,7 +1,7 @@
 ///<reference path="../utils/custom.d.ts" />
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { Role } from '../models/user.schema';
+import { Role } from '../../../shared/types/domain';
 import { AppError } from './errorHandler';
 
 

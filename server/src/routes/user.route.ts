@@ -1,7 +1,7 @@
 import express from 'express';
 import { authMiddleware, checkRole } from '../middlewares/middel'
 import { profileIconUpload } from '../middlewares/upload';
-import { Role } from '../models/user.schema';
+import { Role } from '../../../shared/types/domain';
 import { validateBody, validateQuery } from '../middlewares/validate.middleware';
 import {
     changePasswordBodySchema,

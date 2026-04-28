@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 import { MessageType, type Message as SharedMessage } from "../../../shared/types/domain";
 
-export interface Imessage extends Document, Omit<SharedMessage, 'conversationId' | 'sender' | 'receiver' | 'createdAt' | 'updatedAt'> {
+export interface Imessage extends Document, Omit<SharedMessage, '_id' | 'conversationId' | 'sender' | 'receiver' | 'createdAt' | 'updatedAt'> {
     conversationId: Schema.Types.ObjectId,
     sender: Schema.Types.ObjectId,
     receiver: Schema.Types.ObjectId,

@@ -309,9 +309,10 @@
   - [x] איך להריץ עם Docker
   - [x] טבלת ENV variables
   - [x] commit: `git commit -m "docs(readme): add architecture diagram, docker run guide, and full env variables table"`
-- [ ] **API Documentation**
-  - [ ] Swagger / OpenAPI
-  - [ ] route `/api/docs`
+- [x] **API Documentation**
+  - [x] Swagger / OpenAPI
+  - [x] route `/api/docs`
+  - [x] commit: `git commit -m "docs(server): add Swagger OpenAPI docs endpoint at /api/docs"`
 - [ ] **CONTRIBUTING.md** (אם open source)
 - [ ] **LICENSE**
 

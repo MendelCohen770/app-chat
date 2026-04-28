@@ -3,12 +3,14 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import swaggerUi from 'swagger-ui-express';
 import messageRoute from './routes/message.route';
 import healthRoute from './routes/health.route';
 import userRoute from './routes/user.route';
 import uploadsRoute from './routes/uploads.route';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { correlationId, httpLogger } from './middlewares/requestContext';
+import { swaggerSpec } from './config/swagger';
 
 export const resolveAllowedOrigins = (clientOrigin: string): string[] => {
   const defaultAllowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
@@ -99,6 +101,10 @@ export const createApp = (clientOrigin: string) => {
   app.use('/message', messageRoute);
   app.use('/', healthRoute);
   app.use('/uploads', uploadsRoute);
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api/docs.json', (_req, res) => {
+    res.json(swaggerSpec);
+  });
   app.use(notFoundHandler);
   app.use(errorHandler);
 

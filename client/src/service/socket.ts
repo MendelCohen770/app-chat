@@ -154,6 +154,14 @@ export type MessageStatusPayload = {
     peerId: string;
 };
 
+type MessageReadPayload = {
+    ids: string[];
+    at: string;
+    readerId?: string;
+    peerId?: string;
+    senderId?: string;
+};
+
 /**
  * Subscribe to message-status updates. The server emits one event per batch
  * when messages become delivered or are read by the peer. Returns an
@@ -168,9 +176,20 @@ export const subscribeToMessageStatus = (
         if (!payload || !Array.isArray(payload.ids) || payload.ids.length === 0) return;
         handler(payload);
     };
+    const readAlias = (payload: MessageReadPayload) => {
+        if (!payload || !Array.isArray(payload.ids) || payload.ids.length === 0 || !payload.at) return;
+        handler({
+            ids: payload.ids,
+            status: 'read',
+            at: payload.at,
+            peerId: payload.peerId || payload.readerId || payload.senderId || '',
+        });
+    };
     s.on('messages:status', wrapped);
+    s.on('message:read', readAlias);
     return () => {
         s.off('messages:status', wrapped);
+        s.off('message:read', readAlias);
     };
 };
 
@@ -181,5 +200,5 @@ export const subscribeToMessageStatus = (
  */
 export const emitMessagesRead = (peerId: string) => {
     if (!socket || !peerId) return;
-    socket.emit('messages:read', { peerId });
+    socket.emit('message:read', { peerId });
 };

@@ -64,4 +64,40 @@ describe('messages integration', () => {
     expect(getResponse.body?.data?.items?.[0]?.content).toBe('hello from integration test');
     expect(getResponse.body?.data?.hasMore).toBe(false);
   });
+
+  it('marks incoming conversation messages as read via PATCH /message/markRead', async () => {
+    const { app } = createApp('http://localhost:5173');
+    const sender = await registerAndLogin(app, {
+      username: 'sender-read',
+      email: 'sender-read@example.com',
+      phone: '223456789',
+    });
+    const receiver = await registerAndLogin(app, {
+      username: 'receiver-read',
+      email: 'receiver-read@example.com',
+      phone: '887654321',
+    });
+
+    const sendResponse = await sender.agent.post('/message/sendMessage').send({
+      receiver: receiver.userId,
+      type: 'text',
+      content: 'hello mark-read',
+    });
+    expect(sendResponse.status).toBe(200);
+    expect(sendResponse.body?.data?.readAt).toBeNull();
+
+    const markReadResponse = await receiver.agent.patch('/message/markRead').send({
+      peerId: sender.userId,
+    });
+    expect(markReadResponse.status).toBe(200);
+    expect(Array.isArray(markReadResponse.body?.data?.ids)).toBe(true);
+    expect(markReadResponse.body?.data?.ids?.length).toBe(1);
+
+    const getResponse = await sender.agent.get('/message/getMessages').query({
+      conversationId: sendResponse.body?.data?.conversationId,
+      limit: '10',
+    });
+    expect(getResponse.status).toBe(200);
+    expect(getResponse.body?.data?.items?.[0]?.readAt).toBeTruthy();
+  });
 });

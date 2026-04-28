@@ -337,14 +337,14 @@
 
 ## P2.2 — Read Receipts
 
-- [ ] **Schema**
-  - [ ] שדה `readBy: ObjectId[]` או `readAt: Date`
-- [ ] **Server**
-  - [ ] endpoint `PATCH /message/markRead`
-  - [ ] socket event `message:read`
-- [ ] **Client**
-  - [ ] ✓ נמסר / ✓✓ נקרא ב-`MessageItem`
-  - [ ] סימון אוטומטי כשהודעה במסך (IntersectionObserver)
+- [x]**Schema**
+  - [x] שדה `readBy: ObjectId[]` או `readAt: Date`
+- [x] **Server**
+  - [x] endpoint `PATCH /message/markRead`
+  - [x] socket event `message:read`
+- [x] **Client**
+  - [x] ✓ נמסר / ✓✓ נקרא ב-`MessageItem`
+  - [x] סימון אוטומטי כשהודעה במסך (IntersectionObserver)
 
 ## P2.3 — Edit & Delete Messages
 

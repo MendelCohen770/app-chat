@@ -290,4 +290,63 @@ const sendMediaMessage = asyncHandler(async (req: Request, res: Response) => {
     }
 });
 
-export { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage };
+const markRead = asyncHandler(async (req: Request, res: Response) => {
+    const authUserId = req.user?.id;
+    if (!authUserId) {
+        throw new AppError(401, 'Authentication failed', 'No authenticated user');
+    }
+
+    const { peerId } = req.body as { peerId?: string };
+    if (!peerId) {
+        throw new AppError(400, 'Invalid request', '`peerId` is required');
+    }
+    if (String(peerId) === String(authUserId)) {
+        throw new AppError(400, 'Invalid request', 'Cannot mark self messages as read');
+    }
+
+    const now = new Date();
+    const unread = await Message.find(
+        { receiver: authUserId, sender: peerId, readAt: null },
+        { _id: 1 },
+    ).lean();
+    if (unread.length === 0) {
+        return res.status(200).json(
+            genericResponse(true, 'Messages marked as read successfully', null, null, { ids: [] }),
+        );
+    }
+
+    const ids = unread.map((m) => String(m._id));
+    await Message.updateMany(
+        { _id: { $in: unread.map((m) => m._id) } },
+        { $set: { readAt: now, deliveredAt: now } },
+    );
+
+    try {
+        const io = getIO();
+        const payload = {
+            ids,
+            at: now.toISOString(),
+            readerId: String(authUserId),
+            peerId: String(authUserId),
+            senderId: String(authUserId),
+        };
+        io.to(String(peerId)).emit('message:read', payload);
+        io.to(String(peerId)).emit('messages:status', {
+            ids,
+            status: 'read',
+            at: payload.at,
+            peerId: payload.peerId,
+        });
+    } catch (_) {
+        // socket not ready / not initialised – safe to skip
+    }
+
+    res.status(200).json(
+        genericResponse(true, 'Messages marked as read successfully', null, null, {
+            ids,
+            at: now.toISOString(),
+        }),
+    );
+});
+
+export { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead };

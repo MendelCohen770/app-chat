@@ -95,6 +95,13 @@ const markConversationAsRead = async (io: Server, userId: string, peerId: string
             at: now.toISOString(),
             peerId: userId,
         });
+        io.to(peerId).emit('message:read', {
+            ids,
+            at: now.toISOString(),
+            readerId: userId,
+            peerId: userId,
+            senderId: userId,
+        });
     } catch (err) {
         logger.error({ err, userId, peerId }, 'Failed to mark conversation as read');
     }
@@ -158,11 +165,13 @@ const setUpSocket = (io: Server) => {
             });
 
             // Client signals it has viewed every message received from `peerId`.
-            socket.on("messages:read", (payload: { peerId?: string } = {}) => {
+            const handleReadEvent = (payload: { peerId?: string } = {}) => {
                 const peerId = typeof payload?.peerId === "string" ? payload.peerId : undefined;
                 if (!userId || !peerId || peerId === userId) return;
                 void markConversationAsRead(io, userId, peerId);
-            });
+            };
+            socket.on("messages:read", handleReadEvent);
+            socket.on("message:read", handleReadEvent);
 
             socket.on("disconnect", (reason) => {
                 logger.info({ socketId: socket.id, reason }, "Socket disconnected");

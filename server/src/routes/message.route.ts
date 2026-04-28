@@ -1,9 +1,9 @@
 import express from 'express'
-import { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage } from '../controllers/message.controller';
+import { sendMessage, getMessages, sendVoiceMessage, sendMediaMessage, markRead } from '../controllers/message.controller';
 import { authMiddleware } from '../middlewares/middel';
 import { chatMediaUpload, voiceUpload } from '../middlewares/upload';
 import { validateBody } from '../middlewares/validate.middleware';
-import { sendMediaBodySchema, sendMessageBodySchema, sendVoiceBodySchema } from '../schemas';
+import { markReadBodySchema, sendMediaBodySchema, sendMessageBodySchema, sendVoiceBodySchema } from '../schemas';
 
 
 const messageRoute = express.Router();
@@ -64,5 +64,19 @@ messageRoute.post('/sendVoice', authMiddleware, voiceUpload, validateBody(sendVo
  *         description: Media message sent successfully
  */
 messageRoute.post('/sendMedia', authMiddleware, chatMediaUpload, validateBody(sendMediaBodySchema), sendMediaMessage);
+/**
+ * @openapi
+ * /message/markRead:
+ *   patch:
+ *     tags:
+ *       - Message
+ *     summary: Mark conversation messages as read
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Messages marked as read successfully
+ */
+messageRoute.patch('/markRead', authMiddleware, validateBody(markReadBodySchema), markRead);
 
 export default messageRoute;

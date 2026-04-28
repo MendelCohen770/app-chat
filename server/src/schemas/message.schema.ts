@@ -18,3 +18,7 @@ export const sendMediaBodySchema = z.object({
     type: z.enum(['image', 'video', 'audio', 'file']).optional(),
     content: z.string().optional(),
 });
+
+export const markReadBodySchema = z.object({
+    peerId: z.string().regex(objectIdRegex, 'Invalid peer id'),
+});

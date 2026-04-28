@@ -116,6 +116,8 @@ const MessageList = () => {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInitialLoadRef = useRef<boolean>(true);
+  const isMarkingReadRef = useRef<boolean>(false);
+  const markReadCooldownUntilRef = useRef<number>(0);
 
   const loadInitial = useCallback(async () => {
     if (!myId || !otherId) {
@@ -281,17 +283,60 @@ const MessageList = () => {
     return unsubscribe;
   }, [myId, otherId]);
 
-  // When the conversation is open and there are unread messages from the peer,
-  // notify the server so their ✓✓ flip to the "read" state.
+  // Mark unread incoming messages as read when they are actually visible on
+  // screen. This avoids prematurely marking messages the user hasn't seen yet.
   useEffect(() => {
     if (!myId || !otherId) return;
     if (status !== 'success') return;
-    const hasUnreadFromPeer = items.some(
-      (m) => m.sender === 'other' && !m.readAtIso,
+    const container = containerRef.current;
+    if (!container) return;
+
+    const unreadFromPeerIds = new Set(
+      items
+        .filter((m) => m.sender === 'other' && !m.readAtIso)
+        .map((m) => m.id),
     );
-    if (hasUnreadFromPeer) {
-      emitMessagesRead(otherId);
-    }
+    if (unreadFromPeerIds.size === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const anyUnreadVisible = entries.some((entry) => {
+          if (!entry.isIntersecting) return false;
+          const messageId = entry.target.getAttribute('data-message-id');
+          if (!messageId) return false;
+          return unreadFromPeerIds.has(messageId);
+        });
+        if (!anyUnreadVisible) return;
+
+        const now = Date.now();
+        if (isMarkingReadRef.current) return;
+        if (markReadCooldownUntilRef.current > now) return;
+        isMarkingReadRef.current = true;
+        const completeMarkReadAttempt = () => {
+          isMarkingReadRef.current = false;
+          markReadCooldownUntilRef.current = Date.now() + 1200;
+        };
+
+        void apiClient
+          .patch('/message/markRead', { peerId: otherId })
+          .then(() => {
+            completeMarkReadAttempt();
+          })
+          .catch(() => {
+            // Fallback: still nudge via socket when REST fails.
+            emitMessagesRead(otherId);
+            completeMarkReadAttempt();
+          });
+      },
+      {
+        root: container,
+        threshold: 0.6,
+      },
+    );
+
+    const nodes = container.querySelectorAll<HTMLElement>('[data-message-id]');
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
   }, [myId, otherId, status, items]);
 
   if (status === 'loading') {
@@ -348,20 +393,21 @@ const MessageList = () => {
         </div>
       )}
       {filteredItems.map((message) => (
-        <MessageItem
-          key={message.id}
-          message={message}
-          highlight={searchQuery}
-          status={
-            message.sender === 'me'
-              ? message.readAtIso
-                ? 'read'
-                : message.deliveredAtIso
-                  ? 'delivered'
-                  : 'sent'
-              : undefined
-          }
-        />
+        <div key={message.id} data-message-id={message.id}>
+          <MessageItem
+            message={message}
+            highlight={searchQuery}
+            status={
+              message.sender === 'me'
+                ? message.readAtIso
+                  ? 'read'
+                  : message.deliveredAtIso
+                    ? 'delivered'
+                    : 'sent'
+                : undefined
+            }
+          />
+        </div>
       ))}
     </div>
   );

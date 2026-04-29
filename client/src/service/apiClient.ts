@@ -1,6 +1,8 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../config/env';
+import { clearAuthStorage } from '../storage/localStorage';
+import { disconnectSocket } from './socket';
 
 const AUTH_ERROR_STATUSES = new Set([401, 403]);
 
@@ -16,6 +18,8 @@ const shouldShowNetworkToast = (): boolean => {
 
 const redirectToLogin = () => {
   if (typeof window === 'undefined') return;
+  disconnectSocket();
+  clearAuthStorage();
   if (window.location.pathname === '/') return;
   window.location.assign('/');
 };

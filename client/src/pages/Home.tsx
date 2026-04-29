@@ -10,6 +10,7 @@ export default function Home() {
   const userContext = useUser();
   const chatContext = useChat();
   const user = userContext?.user as IUser | null;
+  const currentUserId = user?._id ?? null;
 
   // Mobile two-view pattern: show either the contact list or the conversation.
   // Desktop (>= md) always shows both side by side.
@@ -20,9 +21,10 @@ export default function Home() {
   }, [chatContext?.selectedUser, chatContext?.selectedConversation]);
 
   useEffect(() => {
-    if (user) connectSocket(user);
+    if (currentUserId) connectSocket({ _id: currentUserId } as IUser);
+    else disconnectSocket();
     return () => disconnectSocket();
-  }, [user]);
+  }, [currentUserId]);
 
   const backToList = () => {
     setMobileView('list');

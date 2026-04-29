@@ -62,25 +62,25 @@ export const TypingProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
 
         let unsubscribe: (() => void) | null = null;
-        let cancelled = false;
+        let attachedSocket = getSocket();
+        const attachToCurrentSocket = () => {
+            const activeSocket = getSocket();
+            if (!activeSocket || activeSocket === attachedSocket) return;
+            attachedSocket = activeSocket;
 
-        const attach = () => {
-            if (cancelled) return;
-            if (!getSocket()) {
-                window.setTimeout(attach, 100);
-                return;
-            }
-
+            if (unsubscribe) unsubscribe();
             unsubscribe = subscribeToTyping({
                 onTypingStart: addUser,
                 onTypingStop: removeUser,
             });
         };
 
-        attach();
+        attachedSocket = null;
+        attachToCurrentSocket();
+        const monitorId = window.setInterval(attachToCurrentSocket, 150);
 
         return () => {
-            cancelled = true;
+            window.clearInterval(monitorId);
             if (unsubscribe) unsubscribe();
         };
     }, [currentUserId, addUser, removeUser]);

@@ -319,6 +319,7 @@ const UserPanel = () => {
         aria-activedescendant={activeIndex >= 0 ? `contact-${filtered[activeIndex]?._id}` : undefined}
         tabIndex={0}
         onKeyDown={handleListKeyDown}
+        onMouseLeave={() => setActiveIndex(-1)}
         className="flex flex-col gap-0.5 p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded-md"
       >
         {filtered.map((user, idx) => {
@@ -335,6 +336,7 @@ const UserPanel = () => {
                 type="button"
                 onClick={() => setSelectedUser && setSelectedUser(user)}
                 onMouseEnter={() => setActiveIndex(idx)}
+                onMouseLeave={() => setActiveIndex(-1)}
                 className={[
                   'w-full flex items-center p-3 rounded-lg transition-colors text-start',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',

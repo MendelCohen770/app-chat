@@ -2,6 +2,7 @@ import io from "socket.io-client";
 import { IUser } from "../models/user";
 import { API_BASE_URL } from "../config/env";
 let socket: ReturnType<typeof io> | null = null;
+let socketUserId: string | null = null;
 const newMessageHandlers = new Set<(payload: any) => void>();
 
 const SOCKET_URL = API_BASE_URL;
@@ -22,14 +23,28 @@ export const connectSocket = (user: IUser | null | undefined) => {
         return;
     }
 
-    if (socket && socket.connected) {
+    const nextUserId = user._id;
+    if (!nextUserId) {
+        console.warn('connectSocket called with user missing _id. Skipping socket connection.');
         return;
+    }
+
+    if (socket && socket.connected && socketUserId === nextUserId) {
+        return;
+    }
+
+    if (socket) {
+        socket.off('newMessage', forwardNewMessage);
+        socket.disconnect();
+        socket = null;
+        socketUserId = null;
     }
 
     socket = io(SOCKET_URL, {
         transports: ['websocket'],
-        auth: { userId: user._id },
+        auth: { userId: nextUserId },
     });
+    socketUserId = nextUserId;
 
     socket.on('connect', () => {
         console.log('🔌 Socket connected');
@@ -52,6 +67,7 @@ export const disconnectSocket = () => {
         socket.disconnect();
         socket = null;
     }
+    socketUserId = null;
 };
 
 export const getSocket = () => socket;

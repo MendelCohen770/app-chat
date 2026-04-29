@@ -14,18 +14,14 @@ export const PresenceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             return;
         }
 
-        // The socket is created by Home on login; poll briefly until it's ready
-        // so we can attach our listeners no matter who mounts first.
         let unsubscribe: (() => void) | null = null;
-        let cancelled = false;
+        let attachedSocket = getSocket();
+        const attachToCurrentSocket = () => {
+            const activeSocket = getSocket();
+            if (!activeSocket || activeSocket === attachedSocket) return;
+            attachedSocket = activeSocket;
 
-        const attach = () => {
-            if (cancelled) return;
-            if (!getSocket()) {
-                window.setTimeout(attach, 100);
-                return;
-            }
-
+            if (unsubscribe) unsubscribe();
             unsubscribe = subscribeToPresence({
                 onList: (userIds) => setOnlineUserIds(new Set(userIds)),
                 onOnline: (userId) =>
@@ -44,15 +40,17 @@ export const PresenceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     }),
                 onConnect: () => requestPresenceList(),
             });
-
-            // Make sure we have a fresh snapshot right away
             requestPresenceList();
         };
 
-        attach();
+        // Socket can be recreated (StrictMode, auth transitions), so re-attach
+        // listeners whenever the socket instance changes.
+        attachedSocket = null;
+        attachToCurrentSocket();
+        const monitorId = window.setInterval(attachToCurrentSocket, 150);
 
         return () => {
-            cancelled = true;
+            window.clearInterval(monitorId);
             if (unsubscribe) unsubscribe();
         };
     }, [currentUserId]);

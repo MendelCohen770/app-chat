@@ -28,3 +28,28 @@ export const removeStorage = (key: string): void => {
   if (!isBrowser()) return;
   window.localStorage.removeItem(key);
 };
+
+export const clearAuthStorage = (): void => {
+  if (!isBrowser()) return;
+
+  const legacyUserKey = 'user';
+  const currentUser = readStorage<{ _id?: string }>(STORAGE_KEYS.currentUser);
+  const currentUserId = currentUser?._id;
+
+  removeStorage(STORAGE_KEYS.currentUser);
+  removeStorage(legacyUserKey);
+
+  if (!currentUserId) return;
+
+  removeStorage(STORAGE_KEYS.selectedChatByUser(currentUserId));
+
+  const draftPrefix = `app-chat:draft:${currentUserId}:`;
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const key = window.localStorage.key(i);
+    if (key && key.startsWith(draftPrefix)) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach((key) => removeStorage(key));
+};
